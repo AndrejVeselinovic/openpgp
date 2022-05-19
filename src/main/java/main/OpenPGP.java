@@ -22,13 +22,16 @@ public class OpenPGP {
 		return repository.getUsers();
 	}
 
-	public void deleteKeyPair(String username, String password){
-		repository
+	public void deleteKeyPair(String username){
+		repository.deleteKeyPair(username);
 	}
 
 	public static void main(String[] args) {
 		OpenPGP openPGP = new OpenPGP(new FileRepository());
-		openPGP.generateKeyPair("andrej", "email", "123", KeyPairAlgorithm.ElGamal1024);
+		openPGP.generateKeyPair("andrej1", "email", "123", KeyPairAlgorithm.ElGamal1024);
+		openPGP.generateKeyPair("andrej2", "email", "123", KeyPairAlgorithm.ElGamal1024);
+		openPGP.getUsers().forEach(System.out::println);
+		openPGP.deleteKeyPair("andrej1");
 		openPGP.getUsers().forEach(System.out::println);
 	}
 }
