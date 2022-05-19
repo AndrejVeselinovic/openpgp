@@ -5,6 +5,8 @@ import main.UserInfo;
 import java.io.*;
 import java.security.KeyPair;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class FileRepository implements Repository {
@@ -27,10 +29,7 @@ public class FileRepository implements Repository {
 					FileOutputStream publicOutput = new FileOutputStream(publicKeyFile);) {
 				privateOutput.write(keyPair.getPrivate().getEncoded());
 				publicOutput.write(keyPair.getPublic().getEncoded());
-				String usersWrite = String.format(
-						"%s,%s,%s\n",
-						userInfo.getUsername(),
-						userInfo.getEmail(),
+				String usersWrite = String.format("%s,%s,%s\n", userInfo.getUsername(), userInfo.getEmail(),
 						userInfo.getPassword());
 				usersOutput.write(usersWrite.getBytes());
 			}
@@ -42,17 +41,26 @@ public class FileRepository implements Repository {
 	@Override
 	public List<UserInfo> getUsers() {
 		try (BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE))) {
-			return bufferedReader.lines()
-					.map(this::fromLine)
-					.collect(Collectors.toList());
+			return bufferedReader.lines().map(this::fromLine).collect(Collectors.toList());
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	private UserInfo fromLine(String line){
+	@Override
+	public boolean checkPassword(String username, String password) {
+		try (BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE))) {
+			return bufferedReader.lines()
+					.map(this::fromLine)
+					.anyMatch(userInfo -> userInfo.getUsername().equals(username) && userInfo.getPassword().equals(password));
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	private UserInfo fromLine(String line) {
 		String[] args = line.split(",");
-		if(args.length != 3){
+		if (args.length != 3) {
 			throw new RuntimeException("Error parsing user from file, line: " + line);
 		}
 		return new UserInfo(args[0], args[1], args[2]);

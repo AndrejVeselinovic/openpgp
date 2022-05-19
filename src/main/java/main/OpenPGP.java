@@ -22,6 +22,10 @@ public class OpenPGP {
 		return repository.getUsers();
 	}
 
+	public void deleteKeyPair(String username, String password){
+		repository
+	}
+
 	public static void main(String[] args) {
 		OpenPGP openPGP = new OpenPGP(new FileRepository());
 		openPGP.generateKeyPair("andrej", "email", "123", KeyPairAlgorithm.ElGamal1024);
