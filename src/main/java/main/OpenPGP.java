@@ -7,6 +7,7 @@ import main.repositories.Repository;
 
 import java.security.KeyPair;
 import java.util.List;
+import java.util.UUID;
 
 @AllArgsConstructor
 public class OpenPGP {
@@ -15,23 +16,23 @@ public class OpenPGP {
 
 	public void generateKeyPair(String username, String email, String password, KeyPairAlgorithm keyPairAlgorithm) {
 		KeyPair keyPair = keyPairAlgorithm.generateKeyPair();
-		repository.persist(new UserInfo(username, password, email), keyPair);
+		repository.persist(username, email, password, keyPair);
 	}
 
 	public List<UserInfo> getUsers(){
 		return repository.getUsers();
 	}
 
-	public void deleteKeyPair(String username){
-		repository.deleteKeyPair(username);
+	public void deleteKeyPair(UUID keyId){
+		repository.deleteKeyPair(keyId);
 	}
 
 	public static void main(String[] args) {
 		OpenPGP openPGP = new OpenPGP(new FileRepository());
-		openPGP.generateKeyPair("andrej1", "email", "123", KeyPairAlgorithm.ElGamal1024);
-		openPGP.generateKeyPair("andrej2", "email", "123", KeyPairAlgorithm.ElGamal1024);
+//		openPGP.generateKeyPair("andrej", "email", "123", KeyPairAlgorithm.ElGamal1024);
+//		openPGP.generateKeyPair("andrej", "email", "123", KeyPairAlgorithm.ElGamal1024);
 		openPGP.getUsers().forEach(System.out::println);
-		openPGP.deleteKeyPair("andrej1");
+		openPGP.deleteKeyPair(UUID.fromString("44684ede-3545-4d09-b294-98802a073879"));
 		openPGP.getUsers().forEach(System.out::println);
 	}
 }

@@ -4,11 +4,15 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.ToString;
 
-@AllArgsConstructor
+import java.util.UUID;
+
 @Getter
 @ToString
+@AllArgsConstructor
 public class UserInfo {
 	private String username;
 	private String password;
 	private String email;
+	private UUID keyId;
+
 }
