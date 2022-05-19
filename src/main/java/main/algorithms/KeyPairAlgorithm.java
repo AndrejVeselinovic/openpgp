@@ -1,6 +1,8 @@
-package algorithms;
+package main.algorithms;
 
 import lombok.AllArgsConstructor;
+
+import java.security.KeyPair;
 
 @AllArgsConstructor
 public enum KeyPairAlgorithm {
@@ -13,7 +15,7 @@ public enum KeyPairAlgorithm {
 	private final int size;
 	private final Strategy strategy;
 
-	public void generateKeyPair() {
-		this.strategy.generateKeyPair(this.size);
+	public KeyPair generateKeyPair() {
+		return this.strategy.generateKeyPair(this.size);
 	}
 }

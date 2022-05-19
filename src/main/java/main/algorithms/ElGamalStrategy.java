@@ -1,4 +1,4 @@
-package algorithms;
+package main.algorithms;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
