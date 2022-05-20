@@ -24,6 +24,10 @@ import java.util.UUID;
 @AllArgsConstructor
 public class TDES implements SymmetricStrategy {
 
+	static {
+		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+	}
+
 	private final Repository repository;
 
 	private static final String ALGORITHM = "DESede";
@@ -42,11 +46,11 @@ public class TDES implements SymmetricStrategy {
 				byte[] key = keygen.generateKey().getEncoded();
 				repository.persistSessionKey(sessionId, i, key);
 
-				SecretKeySpec skeySpec = new SecretKeySpec(key, ALGORITHM);
+				SecretKeySpec secretKeySpec = new SecretKeySpec(key, ALGORITHM);
 
 				// initialize the cipher for encrypt mode
 				Cipher cipher = Cipher.getInstance(ALGORITHM);
-				cipher.init(Cipher.ENCRYPT_MODE, skeySpec);
+				cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
 
 				encryptedMessage = cipher.doFinal(encryptedMessage);
 
@@ -57,7 +61,6 @@ public class TDES implements SymmetricStrategy {
 		}
 
 		try {
-			Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 			byte[] publicKeyBytes = this.repository.retrievePublicKey(UUID.fromString(keyId));
 			Cipher elgamalCipher = Cipher.getInstance("elgamal");
 			PublicKey publicKey = KeyFactory.getInstance("elgamal").generatePublic(new X509EncodedKeySpec(publicKeyBytes));
@@ -81,7 +84,6 @@ public class TDES implements SymmetricStrategy {
 		byte[] encryptedSessionIdBytes = new byte[ENCRYPTED_UUID_LENGTH];
 		System.arraycopy(encryptedMessage, 0, encryptedSessionIdBytes, 0, ENCRYPTED_UUID_LENGTH);
 		try {
-			Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 			byte[] privateKeyBytes = this.repository.retrievePrivateKey(UUID.fromString(keyId));
 			Cipher elgamalCipher = Cipher.getInstance("elgamal");
 			PrivateKey privateKey = KeyFactory.getInstance("elgamal").generatePrivate(new PKCS8EncodedKeySpec(privateKeyBytes));
@@ -100,10 +102,10 @@ public class TDES implements SymmetricStrategy {
 		for (int i = 2; i >= 0; i--) {
 			try {
 				byte[] key = repository.retrieveSessionKey(sessionId, i);
-				SecretKeySpec skeySpec = new SecretKeySpec(key, ALGORITHM);
+				SecretKeySpec secretKeySpec = new SecretKeySpec(key, ALGORITHM);
 
 				final Cipher cipher = Cipher.getInstance(ALGORITHM);
-				cipher.init(Cipher.DECRYPT_MODE, skeySpec);
+				cipher.init(Cipher.DECRYPT_MODE, secretKeySpec);
 				decryptedMessage = cipher.doFinal(decryptedMessage);
 			} catch (Exception e) {
 				e.printStackTrace();
