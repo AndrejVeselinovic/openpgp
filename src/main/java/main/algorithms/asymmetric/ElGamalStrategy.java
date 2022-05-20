@@ -1,11 +1,11 @@
-package main.algorithms;
+package main.algorithms.asymmetric;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.Security;
 
-public class ElGamalStrategy implements Strategy {
+public class ElGamalStrategy implements AsymmetricStrategy {
 	static {
 		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 	}

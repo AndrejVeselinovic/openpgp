@@ -1,4 +1,4 @@
-package main.algorithms;
+package main.algorithms.asymmetric;
 
 import lombok.AllArgsConstructor;
 
@@ -13,9 +13,9 @@ public enum KeyPairAlgorithm {
 	ElGamal4096(4096, new ElGamalStrategy());
 
 	private final int size;
-	private final Strategy strategy;
+	private final AsymmetricStrategy asymmetricStrategy;
 
 	public KeyPair generateKeyPair() {
-		return this.strategy.generateKeyPair(this.size);
+		return this.asymmetricStrategy.generateKeyPair(this.size);
 	}
 }
