@@ -13,7 +13,7 @@ public enum EncryptionAlgorithm {
 		return this.strategy.encryptMessage(message, keyId);
 	}
 
-	public String decryptMessage(byte[] encryptedMessage, String keyId) {
-		return this.strategy.decryptMessage(encryptedMessage, keyId);
+	public String decryptMessage(byte[] encryptedMessage) {
+		return this.strategy.decryptMessage(encryptedMessage);
 	}
 }

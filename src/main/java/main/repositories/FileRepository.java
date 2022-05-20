@@ -1,6 +1,8 @@
 package main.repositories;
 
-import main.UserInfo;
+import main.KeyInfo;
+import main.KeyType;
+import main.UserKeyInfo;
 
 import java.io.*;
 import java.security.KeyPair;
@@ -25,7 +27,7 @@ public class FileRepository implements Repository {
 	}
 
 	@Override
-	public void persistKeyPair(String username, String email, String password, KeyPair keyPair) {
+	public void persistKeyPair(String username, String email, String password, KeyPair keyPair, KeyType keyType) {
 		UUID keyId = UUID.randomUUID();
 		File usersFile = new File(USERS_FILE);
 		File privateKeyFile = new File(KEY_RING_DIRECTORY + keyId + PRIVATE_KEY_EXTENSION);
@@ -38,8 +40,8 @@ public class FileRepository implements Repository {
 					FileOutputStream publicOutput = new FileOutputStream(publicKeyFile)) {
 				privateOutput.write(keyPair.getPrivate().getEncoded());
 				publicOutput.write(keyPair.getPublic().getEncoded());
-				String usersWrite = String.format("%s,%s,%s,%s\n", username, email,
-						password, keyId);
+				String usersWrite = String.format("%s,%s,%s,%s,%s\n", username, email,
+						password, keyId, keyType);
 				usersOutput.write(usersWrite.getBytes());
 			}
 		} catch (IOException e) {
@@ -48,7 +50,7 @@ public class FileRepository implements Repository {
 	}
 
 	@Override
-	public List<UserInfo> getUsers() {
+	public List<UserKeyInfo> getUsers() {
 		try (BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE))) {
 			return bufferedReader.lines().map(this::fromLine).collect(Collectors.toList());
 		} catch (IOException e) {
@@ -114,22 +116,42 @@ public class FileRepository implements Repository {
 		deleteDirectory(new File(SESSIONS_DIRECTORY + sessionId));
 	}
 
-	@Override
-	public byte[] retrievePublicKey(UUID publicKeyId) {
-		try(FileInputStream fileInputStream = new FileInputStream(KEY_RING_DIRECTORY + publicKeyId + PUBLIC_KEY_EXTENSION)){
-			return fileInputStream.readAllBytes();
+	private KeyInfo retrieveKey(UUID keyId, String extensionType) {
+		byte[] bytes;
+		KeyType keyType = null;
+
+		try(FileInputStream fileInputStream = new FileInputStream(KEY_RING_DIRECTORY + keyId + extensionType)){
+			bytes = fileInputStream.readAllBytes();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+
+		try(BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE))){
+			List<String> lines = bufferedReader.lines().collect(Collectors.toList());
+			for(String line: lines){
+				String[] args = line.split(",");
+				if(args[3].equals(keyId.toString())) {
+					keyType = KeyType.valueOf(args[4]);
+					break;
+				}
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+
+		if(keyType == null) {
+			throw new RuntimeException("couldnt find public key with key id: " + keyId);
+		}
+		return new KeyInfo(bytes, keyType);
+	}
+	@Override
+	public KeyInfo retrievePublicKey(UUID keyId) {
+		return retrieveKey(keyId, PUBLIC_KEY_EXTENSION);
 	}
 
 	@Override
-	public byte[] retrievePrivateKey(UUID privateKeyId) {
-		try(FileInputStream fileInputStream = new FileInputStream(KEY_RING_DIRECTORY + privateKeyId + PRIVATE_KEY_EXTENSION)){
-			return fileInputStream.readAllBytes();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+	public KeyInfo retrievePrivateKey(UUID keyId) {
+		return retrieveKey(keyId, PRIVATE_KEY_EXTENSION);
 	}
 
 	private void deleteDirectory(File directoryToBeDeleted) {
@@ -153,7 +175,7 @@ public class FileRepository implements Repository {
 				if(line == null) {
 					break;
 				}
-				UserInfo userInfo = fromLine(line);
+				UserKeyInfo userInfo = fromLine(line);
 				if(userInfo.getKeyId().equals(keyId)) {
 					continue;
 				}
@@ -169,11 +191,12 @@ public class FileRepository implements Repository {
 		}
 	}
 
-	private UserInfo fromLine(String line) {
+	private UserKeyInfo fromLine(String line) {
 		String[] args = line.split(",");
-		if (args.length != 4) {
+		if (args.length != 5) {
 			throw new RuntimeException("Error parsing user from file, line: " + line);
 		}
-		return new UserInfo(args[0], args[1], args[2], UUID.fromString(args[3]));
+
+		return new UserKeyInfo(args[0], args[1], args[2], UUID.fromString(args[3]), KeyType.valueOf(args[4]));
 	}
 }

@@ -1,5 +1,9 @@
 package main.algorithms.asymmetric;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import main.KeyType;
+
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -13,11 +17,14 @@ import java.security.SecureRandom;
 import java.security.Security;
 import java.util.UUID;
 
+@AllArgsConstructor
 public class ElGamalStrategy implements AsymmetricStrategy {
 	static {
 		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 	}
 
+	@Getter
+	private final KeyType keyType;
 	@Override
 	public KeyPair generateKeyPair(int size) {
 		try {

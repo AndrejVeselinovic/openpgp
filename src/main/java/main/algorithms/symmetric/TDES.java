@@ -1,6 +1,8 @@
 package main.algorithms.symmetric;
 
 import lombok.AllArgsConstructor;
+import main.KeyInfo;
+import main.KeyType;
 import main.repositories.Repository;
 
 import javax.crypto.BadPaddingException;
@@ -19,6 +21,8 @@ import java.security.Security;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @AllArgsConstructor
@@ -32,7 +36,12 @@ public class TDES implements SymmetricStrategy {
 
 	private static final String ALGORITHM = "DESede";
 	private static final int KEY_SIZE = 112;
-	private static final int ENCRYPTED_UUID_LENGTH = 256;
+	private static final int UUID_LENGTH = 36;
+	private static final Map<KeyType, Integer> ENCRYPTED_UUID_LENGTH = new HashMap<>(){{
+		put(KeyType.ElGamal1024, 256);
+		put(KeyType.ElGamal2048, 512);
+		put(KeyType.ElGamal4096, 1024);
+	}};
 
 	@Override
 	public byte[] encryptMessage(String message, String keyId) {
@@ -61,12 +70,16 @@ public class TDES implements SymmetricStrategy {
 		}
 
 		try {
-			byte[] publicKeyBytes = this.repository.retrievePublicKey(UUID.fromString(keyId));
+			byte[] encryptedSessionId = sessionId.toString().getBytes();
+			KeyInfo keyInfo = this.repository.retrievePublicKey(UUID.fromString(keyId));
 			Cipher elgamalCipher = Cipher.getInstance("elgamal");
-			PublicKey publicKey = KeyFactory.getInstance("elgamal").generatePublic(new X509EncodedKeySpec(publicKeyBytes));
+			PublicKey publicKey = KeyFactory.getInstance("elgamal").generatePublic(new X509EncodedKeySpec(keyInfo.getBytes()));
 			elgamalCipher.init(Cipher.ENCRYPT_MODE, publicKey);
-			byte[] encryptedSessionId = elgamalCipher.doFinal(sessionId.toString().getBytes());
-			ByteBuffer byteBuffer = ByteBuffer.allocate(encryptedMessage.length + encryptedSessionId.length);
+			encryptedSessionId = elgamalCipher.doFinal(encryptedSessionId);
+
+			byte[] keyIdBytes = keyId.getBytes();
+			ByteBuffer byteBuffer = ByteBuffer.allocate(encryptedMessage.length + encryptedSessionId.length + keyIdBytes.length);
+			byteBuffer.put(keyIdBytes);
 			byteBuffer.put(encryptedSessionId);
 			byteBuffer.put(encryptedMessage);
 
@@ -78,15 +91,23 @@ public class TDES implements SymmetricStrategy {
 	}
 
 	@Override
-	public String decryptMessage(byte[] encryptedMessage, String keyId) {
+	public String decryptMessage(byte[] encryptedMessage) {
 		UUID sessionId;
+		int cursor = 0;
 
-		byte[] encryptedSessionIdBytes = new byte[ENCRYPTED_UUID_LENGTH];
-		System.arraycopy(encryptedMessage, 0, encryptedSessionIdBytes, 0, ENCRYPTED_UUID_LENGTH);
+		byte[] keyIdBytes = new byte[UUID_LENGTH];
+		System.arraycopy(encryptedMessage, cursor, keyIdBytes, 0, UUID_LENGTH);
+		cursor += UUID_LENGTH;
+		KeyInfo privateKeyInfo = this.repository.retrievePrivateKey(UUID.fromString(new String(keyIdBytes)));
+
+		int encryptedUUIDLength = ENCRYPTED_UUID_LENGTH.get(privateKeyInfo.getKeyType());
+		byte[] encryptedSessionIdBytes = new byte[encryptedUUIDLength];
+		System.arraycopy(encryptedMessage, cursor, encryptedSessionIdBytes, 0, encryptedUUIDLength);
+		cursor += encryptedUUIDLength;
+
 		try {
-			byte[] privateKeyBytes = this.repository.retrievePrivateKey(UUID.fromString(keyId));
 			Cipher elgamalCipher = Cipher.getInstance("elgamal");
-			PrivateKey privateKey = KeyFactory.getInstance("elgamal").generatePrivate(new PKCS8EncodedKeySpec(privateKeyBytes));
+			PrivateKey privateKey = KeyFactory.getInstance("elgamal").generatePrivate(new PKCS8EncodedKeySpec(privateKeyInfo.getBytes()));
 			elgamalCipher.init(Cipher.DECRYPT_MODE, privateKey);
 			byte[] sessionIdBytes = elgamalCipher.doFinal(encryptedSessionIdBytes);
 			sessionId = UUID.fromString(new String(sessionIdBytes));
@@ -95,9 +116,9 @@ public class TDES implements SymmetricStrategy {
 			throw new RuntimeException(e);
 		}
 
-		int encryptedMessageLength = encryptedMessage.length - ENCRYPTED_UUID_LENGTH;
+		int encryptedMessageLength = encryptedMessage.length - cursor;
 		byte[] decryptedMessage = new byte[encryptedMessageLength];
-		System.arraycopy(encryptedMessage, ENCRYPTED_UUID_LENGTH, decryptedMessage, 0, encryptedMessageLength);
+		System.arraycopy(encryptedMessage, cursor, decryptedMessage, 0, encryptedMessageLength);
 
 		for (int i = 2; i >= 0; i--) {
 			try {

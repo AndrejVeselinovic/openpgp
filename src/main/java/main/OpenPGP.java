@@ -17,10 +17,10 @@ public class OpenPGP {
 
 	public void generateKeyPair(String username, String email, String password, KeyPairAlgorithm keyPairAlgorithm) {
 		KeyPair keyPair = keyPairAlgorithm.generateKeyPair();
-		repository.persistKeyPair(username, email, password, keyPair);
+		repository.persistKeyPair(username, email, password, keyPair, keyPairAlgorithm.getKeyType());
 	}
 
-	public List<UserInfo> getUsers(){
+	public List<UserKeyInfo> getUsers(){
 		return repository.getUsers();
 	}
 
@@ -32,19 +32,20 @@ public class OpenPGP {
 		return algorithm.encryptMessage(message, keyId);
 	}
 
-	public String decryptMessage(byte[] encryptedMessage, String keyId, EncryptionAlgorithm algorithm) {
-		return algorithm.decryptMessage(encryptedMessage, keyId);
+	public String decryptMessage(byte[] encryptedMessage, EncryptionAlgorithm algorithm) {
+		return algorithm.decryptMessage(encryptedMessage);
 	}
 
 	public static void main(String[] args) {
 		OpenPGP openPGP = new OpenPGP(new FileRepository());
 //		openPGP.generateKeyPair("andrej", "email", "123", KeyPairAlgorithm.ElGamal1024);
 //		openPGP.generateKeyPair("andrej", "email", "123", KeyPairAlgorithm.ElGamal1024);
+//		openPGP.generateKeyPair("andrej", "email", "123", KeyPairAlgorithm.DSA_1024);
 //		openPGP.getUsers().forEach(System.out::println);
 //		openPGP.deleteKeyPair(UUID.fromString("44684ede-3545-4d09-b294-98802a073879"));
 //		openPGP.getUsers().forEach(System.out::println);
-		byte[] tests = openPGP.encryptMessage("test", "ff2eaf19-77e1-485e-98be-c3f6ea5857d9", EncryptionAlgorithm.TDESWithEDE);
-		String s = openPGP.decryptMessage(tests, "ff2eaf19-77e1-485e-98be-c3f6ea5857d9", EncryptionAlgorithm.TDESWithEDE);
+		byte[] tests = openPGP.encryptMessage("test", "0934c6b4-8913-4f14-bb2d-1a708957f745", EncryptionAlgorithm.TDESWithEDE);
+		String s = openPGP.decryptMessage(tests, EncryptionAlgorithm.TDESWithEDE);
 		System.out.println(s);
 	}
 }
