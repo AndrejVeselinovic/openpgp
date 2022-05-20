@@ -5,7 +5,7 @@ import main.repositories.FileRepository;
 
 @AllArgsConstructor
 public enum EncryptionAlgorithm {
-	TDESWithEDE(new TDES());
+	TDESWithEDE(new TDES(new FileRepository()));
 
 	private final SymmetricStrategy strategy;
 

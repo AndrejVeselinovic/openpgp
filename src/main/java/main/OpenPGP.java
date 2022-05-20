@@ -3,14 +3,10 @@ package main;
 import lombok.AllArgsConstructor;
 import main.algorithms.asymmetric.KeyPairAlgorithm;
 import main.algorithms.symmetric.EncryptionAlgorithm;
-import main.algorithms.symmetric.SymmetricStrategy;
 import main.repositories.FileRepository;
 import main.repositories.Repository;
 
-import javax.crypto.Cipher;
-import javax.crypto.NoSuchPaddingException;
 import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.UUID;
 
@@ -21,7 +17,7 @@ public class OpenPGP {
 
 	public void generateKeyPair(String username, String email, String password, KeyPairAlgorithm keyPairAlgorithm) {
 		KeyPair keyPair = keyPairAlgorithm.generateKeyPair();
-		repository.persist(username, email, password, keyPair);
+		repository.persistKeyPair(username, email, password, keyPair);
 	}
 
 	public List<UserInfo> getUsers(){

@@ -9,10 +9,11 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class FileRepository implements Repository {
-	private static final String DIRECTORY = "keys/";
-	private static final String USERS_FILE = DIRECTORY + "users.csv";
+	private static final String KEY_RING_DIRECTORY = "keys/";
+	private static final String USERS_FILE = KEY_RING_DIRECTORY + "users.csv";
 	private static final String PRIVATE_KEY_EXTENSION = ".priv";
 	private static final String PUBLIC_KEY_EXTENSION = ".pub";
+	private static final String SESSIONS_DIRECTORY = "sessions/";
 
 	static {
 		File usersFile = new File(USERS_FILE);
@@ -24,11 +25,11 @@ public class FileRepository implements Repository {
 	}
 
 	@Override
-	public void persist(String username, String email, String password, KeyPair keyPair) {
+	public void persistKeyPair(String username, String email, String password, KeyPair keyPair) {
 		UUID keyId = UUID.randomUUID();
 		File usersFile = new File(USERS_FILE);
-		File privateKeyFile = new File(DIRECTORY + keyId + PRIVATE_KEY_EXTENSION);
-		File publicKeyFile = new File(DIRECTORY + keyId + PUBLIC_KEY_EXTENSION);
+		File privateKeyFile = new File(KEY_RING_DIRECTORY + keyId + PRIVATE_KEY_EXTENSION);
+		File publicKeyFile = new File(KEY_RING_DIRECTORY + keyId + PUBLIC_KEY_EXTENSION);
 		try {
 			privateKeyFile.createNewFile();
 			publicKeyFile.createNewFile();
@@ -68,8 +69,8 @@ public class FileRepository implements Repository {
 
 	@Override
 	public void deleteKeyPair(UUID keyId) {
-		File privateKeyFile = new File(DIRECTORY + keyId + PRIVATE_KEY_EXTENSION);
-		File publicKeyFile = new File(DIRECTORY + keyId + PUBLIC_KEY_EXTENSION);
+		File privateKeyFile = new File(KEY_RING_DIRECTORY + keyId + PRIVATE_KEY_EXTENSION);
+		File publicKeyFile = new File(KEY_RING_DIRECTORY + keyId + PUBLIC_KEY_EXTENSION);
 		if(!privateKeyFile.delete()) {
 			throw new RuntimeException("Error deleting private key file for key " + keyId);
 		}
@@ -79,6 +80,48 @@ public class FileRepository implements Repository {
 		}
 
 		deleteKeyRecord(keyId);
+	}
+
+	@Override
+	public void persistSessionKey(UUID sessionId, int keyIndex, byte[] key) {
+		String dirPath = String.format("%s%s/", SESSIONS_DIRECTORY, sessionId);
+		File dir = new File(dirPath);
+		dir.mkdirs();
+
+		File file = new File(dirPath + keyIndex);
+
+		try(FileOutputStream fileOutputStream = new FileOutputStream(file)) {
+			fileOutputStream.write(key);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@Override
+	public byte[] retrieveSessionKey(UUID sessionId, int keyIndex) {
+		String path = String.format("%s%s/%s", SESSIONS_DIRECTORY, sessionId, keyIndex);
+		File file = new File(path);
+
+		try(FileInputStream fileInputStream = new FileInputStream(file)) {
+			return fileInputStream.readAllBytes();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@Override
+	public void deleteSessionKey(UUID sessionId) {
+		deleteDirectory(new File(SESSIONS_DIRECTORY + sessionId));
+	}
+
+	private void deleteDirectory(File directoryToBeDeleted) {
+		File[] allContents = directoryToBeDeleted.listFiles();
+		if (allContents != null) {
+			for (File file : allContents) {
+				deleteDirectory(file);
+			}
+		}
+		directoryToBeDeleted.delete();
 	}
 
 	private void deleteKeyRecord(UUID keyId) {
