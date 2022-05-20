@@ -17,4 +17,8 @@ public interface Repository {
 	byte[] retrieveSessionKey(UUID sessionId, int keyIndex);
 
 	void deleteSessionKey(UUID sessionId);
+
+	byte[] retrievePublicKey(UUID publicKeyId);
+
+	byte[] retrievePrivateKey(UUID privateKeyId);
 }

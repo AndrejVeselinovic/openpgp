@@ -11,7 +11,14 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
+import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.Security;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.UUID;
 
 @AllArgsConstructor
@@ -21,12 +28,10 @@ public class TDES implements SymmetricStrategy {
 
 	private static final String ALGORITHM = "DESede";
 	private static final int KEY_SIZE = 112;
-	private static final int UUID_LENGTH = 36;
-
-	//	private final List<SecretKeySpec> secretKeySpec = new LinkedList<>();
+	private static final int ENCRYPTED_UUID_LENGTH = 256;
 
 	@Override
-	public byte[] encryptMessage(String message) {
+	public byte[] encryptMessage(String message, String keyId) {
 		UUID sessionId = UUID.randomUUID();
 		byte[] encryptedMessage = message.getBytes();
 		for (int i = 0; i < 3; i++) {
@@ -44,27 +49,53 @@ public class TDES implements SymmetricStrategy {
 				cipher.init(Cipher.ENCRYPT_MODE, skeySpec);
 
 				encryptedMessage = cipher.doFinal(encryptedMessage);
+
 			} catch (NoSuchAlgorithmException | InvalidKeyException | NoSuchPaddingException |
 					 IllegalBlockSizeException | BadPaddingException e) {
 				throw new RuntimeException(e);
 			}
 		}
-		byte[] sessionIdBytes = sessionId.toString().getBytes();
-		ByteBuffer byteBuffer = ByteBuffer.allocate(encryptedMessage.length + sessionIdBytes.length);
-		byteBuffer.put(sessionIdBytes);
-		byteBuffer.put(encryptedMessage);
-		return byteBuffer.array();
+
+		try {
+			Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+			byte[] publicKeyBytes = this.repository.retrievePublicKey(UUID.fromString(keyId));
+			Cipher elgamalCipher = Cipher.getInstance("elgamal");
+			PublicKey publicKey = KeyFactory.getInstance("elgamal").generatePublic(new X509EncodedKeySpec(publicKeyBytes));
+			elgamalCipher.init(Cipher.ENCRYPT_MODE, publicKey);
+			byte[] encryptedSessionId = elgamalCipher.doFinal(sessionId.toString().getBytes());
+			ByteBuffer byteBuffer = ByteBuffer.allocate(encryptedMessage.length + encryptedSessionId.length);
+			byteBuffer.put(encryptedSessionId);
+			byteBuffer.put(encryptedMessage);
+
+			return byteBuffer.array();
+		} catch (NoSuchPaddingException | IllegalBlockSizeException | NoSuchAlgorithmException | BadPaddingException |
+				 InvalidKeySpecException | InvalidKeyException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override
-	public String decryptMessage(byte[] encryptedMessage) {
-		byte[] sessionIdBytes = new byte[UUID_LENGTH];
-		System.arraycopy(encryptedMessage, 0, sessionIdBytes, 0, UUID_LENGTH);
-		UUID sessionId = UUID.fromString(new String(sessionIdBytes));
+	public String decryptMessage(byte[] encryptedMessage, String keyId) {
+		UUID sessionId;
 
-		int encryptedMessageLength = encryptedMessage.length - UUID_LENGTH;
+		byte[] encryptedSessionIdBytes = new byte[ENCRYPTED_UUID_LENGTH];
+		System.arraycopy(encryptedMessage, 0, encryptedSessionIdBytes, 0, ENCRYPTED_UUID_LENGTH);
+		try {
+			Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+			byte[] privateKeyBytes = this.repository.retrievePrivateKey(UUID.fromString(keyId));
+			Cipher elgamalCipher = Cipher.getInstance("elgamal");
+			PrivateKey privateKey = KeyFactory.getInstance("elgamal").generatePrivate(new PKCS8EncodedKeySpec(privateKeyBytes));
+			elgamalCipher.init(Cipher.DECRYPT_MODE, privateKey);
+			byte[] sessionIdBytes = elgamalCipher.doFinal(encryptedSessionIdBytes);
+			sessionId = UUID.fromString(new String(sessionIdBytes));
+		} catch (NoSuchPaddingException | IllegalBlockSizeException | NoSuchAlgorithmException | BadPaddingException |
+				 InvalidKeySpecException | InvalidKeyException e) {
+			throw new RuntimeException(e);
+		}
+
+		int encryptedMessageLength = encryptedMessage.length - ENCRYPTED_UUID_LENGTH;
 		byte[] decryptedMessage = new byte[encryptedMessageLength];
-		System.arraycopy(encryptedMessage, UUID_LENGTH, decryptedMessage, 0, encryptedMessageLength);
+		System.arraycopy(encryptedMessage, ENCRYPTED_UUID_LENGTH, decryptedMessage, 0, encryptedMessageLength);
 
 		for (int i = 2; i >= 0; i--) {
 			try {

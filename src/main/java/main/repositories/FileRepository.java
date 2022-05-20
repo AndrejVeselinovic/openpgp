@@ -114,6 +114,24 @@ public class FileRepository implements Repository {
 		deleteDirectory(new File(SESSIONS_DIRECTORY + sessionId));
 	}
 
+	@Override
+	public byte[] retrievePublicKey(UUID publicKeyId) {
+		try(FileInputStream fileInputStream = new FileInputStream(KEY_RING_DIRECTORY + publicKeyId + PUBLIC_KEY_EXTENSION)){
+			return fileInputStream.readAllBytes();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@Override
+	public byte[] retrievePrivateKey(UUID privateKeyId) {
+		try(FileInputStream fileInputStream = new FileInputStream(KEY_RING_DIRECTORY + privateKeyId + PRIVATE_KEY_EXTENSION)){
+			return fileInputStream.readAllBytes();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	private void deleteDirectory(File directoryToBeDeleted) {
 		File[] allContents = directoryToBeDeleted.listFiles();
 		if (allContents != null) {

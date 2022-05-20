@@ -9,11 +9,11 @@ public enum EncryptionAlgorithm {
 
 	private final SymmetricStrategy strategy;
 
-	public byte[] encryptMessage(String message) {
-		return this.strategy.encryptMessage(message);
+	public byte[] encryptMessage(String message, String keyId) {
+		return this.strategy.encryptMessage(message, keyId);
 	}
 
-	public String decryptMessage(byte[] encryptedMessage) {
-		return this.strategy.decryptMessage(encryptedMessage);
+	public String decryptMessage(byte[] encryptedMessage, String keyId) {
+		return this.strategy.decryptMessage(encryptedMessage, keyId);
 	}
 }

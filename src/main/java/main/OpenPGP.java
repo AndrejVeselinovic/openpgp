@@ -28,12 +28,12 @@ public class OpenPGP {
 		repository.deleteKeyPair(keyId);
 	}
 
-	public byte[] encryptMessage(String message, EncryptionAlgorithm algorithm) {
-		return algorithm.encryptMessage(message);
+	public byte[] encryptMessage(String message, String keyId, EncryptionAlgorithm algorithm) {
+		return algorithm.encryptMessage(message, keyId);
 	}
 
-	public String decryptMessage(byte[] encryptedMessage, EncryptionAlgorithm algorithm) {
-		return algorithm.decryptMessage(encryptedMessage);
+	public String decryptMessage(byte[] encryptedMessage, String keyId, EncryptionAlgorithm algorithm) {
+		return algorithm.decryptMessage(encryptedMessage, keyId);
 	}
 
 	public static void main(String[] args) {
@@ -43,8 +43,8 @@ public class OpenPGP {
 //		openPGP.getUsers().forEach(System.out::println);
 //		openPGP.deleteKeyPair(UUID.fromString("44684ede-3545-4d09-b294-98802a073879"));
 //		openPGP.getUsers().forEach(System.out::println);
-		byte[] tests = openPGP.encryptMessage("test", EncryptionAlgorithm.TDESWithEDE);
-		String s = openPGP.decryptMessage(tests, EncryptionAlgorithm.TDESWithEDE);
+		byte[] tests = openPGP.encryptMessage("test", "ff2eaf19-77e1-485e-98be-c3f6ea5857d9", EncryptionAlgorithm.TDESWithEDE);
+		String s = openPGP.decryptMessage(tests, "ff2eaf19-77e1-485e-98be-c3f6ea5857d9", EncryptionAlgorithm.TDESWithEDE);
 		System.out.println(s);
 	}
 }
