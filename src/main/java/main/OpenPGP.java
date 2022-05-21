@@ -38,7 +38,7 @@ public class OpenPGP {
 
 	public static void main(String[] args) {
 		OpenPGP openPGP = new OpenPGP(new FileRepository());
-//		openPGP.generateKeyPair("andrej", "email", "123", KeyPairAlgorithm.ElGamal1024);
+		openPGP.generateKeyPair("andrej", "email", "123", KeyPairAlgorithm.ElGamal1024);
 //		openPGP.generateKeyPair("andrej", "email", "123", KeyPairAlgorithm.ElGamal1024);
 //		openPGP.generateKeyPair("andrej", "email", "123", KeyPairAlgorithm.DSA_1024);
 //		openPGP.getUsers().forEach(System.out::println);

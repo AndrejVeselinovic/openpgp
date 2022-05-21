@@ -30,13 +30,8 @@ public class ElGamalStrategy implements AsymmetricStrategy {
 		try {
 			KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("ELGAMAL");
 			keyPairGenerator.initialize(size);
-			KeyPair keyPair = keyPairGenerator.generateKeyPair();
-			Cipher cipher = Cipher.getInstance("elgamal");
-			cipher.init(Cipher.ENCRYPT_MODE, keyPair.getPublic());
-			byte[] bytes = cipher.doFinal(UUID.randomUUID().toString().getBytes());
-			return keyPair;
-		} catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException |
-				 BadPaddingException e) {
+			return keyPairGenerator.generateKeyPair();
+		} catch (NoSuchAlgorithmException e) {
 			throw new RuntimeException(e);
 		}
 	}
