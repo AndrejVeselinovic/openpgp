@@ -38,13 +38,13 @@ public class OpenPGP {
 
 	public static void main(String[] args) {
 		OpenPGP openPGP = new OpenPGP(new FileRepository());
-		openPGP.generateKeyPair("andrej", "email", "123", KeyPairAlgorithm.ElGamal1024);
+//		openPGP.generateKeyPair("andrej", "email", "123", KeyPairAlgorithm.ElGamal4096);
 //		openPGP.generateKeyPair("andrej", "email", "123", KeyPairAlgorithm.ElGamal1024);
 //		openPGP.generateKeyPair("andrej", "email", "123", KeyPairAlgorithm.DSA_1024);
 //		openPGP.getUsers().forEach(System.out::println);
 //		openPGP.deleteKeyPair(UUID.fromString("44684ede-3545-4d09-b294-98802a073879"));
 //		openPGP.getUsers().forEach(System.out::println);
-		byte[] tests = openPGP.encryptMessage("test", "0934c6b4-8913-4f14-bb2d-1a708957f745", EncryptionAlgorithm.TDESWithEDE);
+		byte[] tests = openPGP.encryptMessage("test", "9590d5f0-000e-46e9-9f3d-60d37f47b7fc", EncryptionAlgorithm.TDESWithEDE);
 		String s = openPGP.decryptMessage(tests, EncryptionAlgorithm.TDESWithEDE);
 		System.out.println(s);
 	}

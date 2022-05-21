@@ -40,7 +40,7 @@ public class TDES implements SymmetricStrategy {
 	private static final Map<KeyType, Integer> ENCRYPTED_UUID_LENGTH = new HashMap<>(){{
 		put(KeyType.ElGamal1024, 256);
 		put(KeyType.ElGamal2048, 512);
-		put(KeyType.ElGamal4096, 1024);
+		put(KeyType.ElGamal4096, 128);
 	}};
 
 	@Override

@@ -3,6 +3,7 @@ package main.algorithms.asymmetric;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import main.KeyType;
+import org.bouncycastle.crypto.generators.ElGamalKeyPairGenerator;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
