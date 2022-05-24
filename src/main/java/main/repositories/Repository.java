@@ -1,15 +1,16 @@
 package main.repositories;
 
-import main.KeyInfo;
-import main.KeyType;
+import main.SecretKeyInfo;
+import main.PublicKeyInfo;
 import main.UserKeyInfo;
+import org.bouncycastle.openpgp.PGPKeyRingGenerator;
 
-import java.security.KeyPair;
 import java.util.List;
 import java.util.UUID;
 
 public interface Repository {
-	void persistKeyPair(String username, String email, String password, KeyPair keyPair, KeyType keyType);
+	UUID persistKeyPair(PGPKeyRingGenerator keyRingGenerator);
+	void persistUserKeyInfo(UserKeyInfo userKeyInfo);
 	List<UserKeyInfo> getUsers();
 	boolean checkPassword(String username, String password);
 	void deleteKeyPair(UUID keyId);
@@ -20,7 +21,7 @@ public interface Repository {
 
 	void deleteSessionKey(UUID sessionId);
 
-	KeyInfo retrievePublicKey(UUID keyId);
+	PublicKeyInfo retrievePublicEncryptionKey(UUID keyId);
 
-	KeyInfo retrievePrivateKey(UUID keyId);
+	SecretKeyInfo retrievePrivateEncryptionKey(UUID keyId);
 }

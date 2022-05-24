@@ -2,6 +2,7 @@ package main.algorithms.asymmetric;
 
 import lombok.AllArgsConstructor;
 import main.KeyType;
+import org.bouncycastle.openpgp.PGPKeyPair;
 
 import java.security.KeyPair;
 
@@ -16,7 +17,7 @@ public enum KeyPairAlgorithm {
 	private final int size;
 	private final AsymmetricStrategy asymmetricStrategy;
 
-	public KeyPair generateKeyPair() {
+	public PGPKeyPair generateKeyPair() {
 		return this.asymmetricStrategy.generateKeyPair(this.size);
 	}
 

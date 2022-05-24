@@ -2,11 +2,12 @@ package main;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.bouncycastle.openpgp.PGPPublicKey;
 
 @AllArgsConstructor
-public class KeyInfo {
+public class PublicKeyInfo {
 	@Getter
-	private byte[] bytes;
+	private PGPPublicKey publicKey;
 	@Getter
 	private KeyType keyType;
 

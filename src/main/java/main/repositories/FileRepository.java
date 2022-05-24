@@ -1,11 +1,27 @@
 package main.repositories;
 
-import main.KeyInfo;
+import main.SecretKeyInfo;
+import main.PublicKeyInfo;
 import main.KeyType;
 import main.UserKeyInfo;
+import org.bouncycastle.bcpg.ArmoredInputStream;
+import org.bouncycastle.bcpg.ArmoredOutputStream;
+import org.bouncycastle.openpgp.PGPException;
+import org.bouncycastle.openpgp.PGPKeyRingGenerator;
+import org.bouncycastle.openpgp.PGPPublicKey;
+import org.bouncycastle.openpgp.PGPSecretKey;
+import org.bouncycastle.openpgp.jcajce.JcaPGPPublicKeyRing;
+import org.bouncycastle.openpgp.jcajce.JcaPGPSecretKeyRing;
 
-import java.io.*;
-import java.security.KeyPair;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -15,6 +31,7 @@ public class FileRepository implements Repository {
 	private static final String USERS_FILE = KEY_RING_DIRECTORY + "users.csv";
 	private static final String PRIVATE_KEY_EXTENSION = ".priv";
 	private static final String PUBLIC_KEY_EXTENSION = ".pub";
+	private static final String KEY_EXTENSION = ".asc";
 	private static final String SESSIONS_DIRECTORY = "sessions/";
 
 	static {
@@ -26,22 +43,44 @@ public class FileRepository implements Repository {
 		}
 	}
 
+	private String getPublicKeyFilePath(UUID keyId) {
+		return KEY_RING_DIRECTORY + keyId + PUBLIC_KEY_EXTENSION + KEY_EXTENSION;
+	}
+
+	private String getPrivateKeyFilePath(UUID keyId) {
+		return KEY_RING_DIRECTORY + keyId + PRIVATE_KEY_EXTENSION + KEY_EXTENSION;
+	}
+
 	@Override
-	public void persistKeyPair(String username, String email, String password, KeyPair keyPair, KeyType keyType) {
+	public UUID persistKeyPair(PGPKeyRingGenerator keyRingGenerator) {
 		UUID keyId = UUID.randomUUID();
-		File usersFile = new File(USERS_FILE);
-		File privateKeyFile = new File(KEY_RING_DIRECTORY + keyId + PRIVATE_KEY_EXTENSION);
-		File publicKeyFile = new File(KEY_RING_DIRECTORY + keyId + PUBLIC_KEY_EXTENSION);
+		File privateKeyFile = new File(getPrivateKeyFilePath(keyId));
+		File publicKeyFile = new File(getPublicKeyFilePath(keyId));
 		try {
 			privateKeyFile.createNewFile();
 			publicKeyFile.createNewFile();
-			try (FileOutputStream usersOutput = new FileOutputStream(usersFile, true);
-					FileOutputStream privateOutput = new FileOutputStream(privateKeyFile);
-					FileOutputStream publicOutput = new FileOutputStream(publicKeyFile)) {
-				privateOutput.write(keyPair.getPrivate().getEncoded());
-				publicOutput.write(keyPair.getPublic().getEncoded());
-				String usersWrite = String.format("%s,%s,%s,%s,%s\n", username, email,
-						password, keyId, keyType);
+			try (ArmoredOutputStream privateOutput = new ArmoredOutputStream(new FileOutputStream(privateKeyFile));
+					ArmoredOutputStream publicOutput = new ArmoredOutputStream(new FileOutputStream(publicKeyFile))) {
+				keyRingGenerator.generatePublicKeyRing().encode(publicOutput);
+				keyRingGenerator.generateSecretKeyRing().encode(privateOutput);
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		return keyId;
+	}
+
+	@Override
+	public void persistUserKeyInfo(UserKeyInfo userKeyInfo) {
+		try {
+			try (FileOutputStream usersOutput = new FileOutputStream(USERS_FILE, true)) {
+				String usersWrite = String.format("%s,%s,%s,%s,%s,%s\n",
+						userKeyInfo.getUsername(),
+						userKeyInfo.getEmail(),
+						userKeyInfo.getPassword(),
+						userKeyInfo.getKeyId(),
+						userKeyInfo.getEncryptionKeyType(),
+						userKeyInfo.getSignatureKeyType());
 				usersOutput.write(usersWrite.getBytes());
 			}
 		} catch (IOException e) {
@@ -63,7 +102,8 @@ public class FileRepository implements Repository {
 		try (BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE))) {
 			return bufferedReader.lines()
 					.map(this::fromLine)
-					.anyMatch(userInfo -> userInfo.getUsername().equals(username) && userInfo.getPassword().equals(password));
+					.anyMatch(userInfo -> userInfo.getUsername().equals(username) && userInfo.getPassword()
+							.equals(password));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -71,13 +111,13 @@ public class FileRepository implements Repository {
 
 	@Override
 	public void deleteKeyPair(UUID keyId) {
-		File privateKeyFile = new File(KEY_RING_DIRECTORY + keyId + PRIVATE_KEY_EXTENSION);
-		File publicKeyFile = new File(KEY_RING_DIRECTORY + keyId + PUBLIC_KEY_EXTENSION);
-		if(!privateKeyFile.delete()) {
+		File privateKeyFile = new File(getPrivateKeyFilePath(keyId));
+		File publicKeyFile = new File(getPublicKeyFilePath(keyId));
+		if (!privateKeyFile.delete()) {
 			throw new RuntimeException("Error deleting private key file for key " + keyId);
 		}
 
-		if(!publicKeyFile.delete()) {
+		if (!publicKeyFile.delete()) {
 			throw new RuntimeException("Error deleting public key file for key " + keyId);
 		}
 
@@ -92,7 +132,7 @@ public class FileRepository implements Repository {
 
 		File file = new File(dirPath + keyIndex);
 
-		try(FileOutputStream fileOutputStream = new FileOutputStream(file)) {
+		try (FileOutputStream fileOutputStream = new FileOutputStream(file)) {
 			fileOutputStream.write(key);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
@@ -104,7 +144,7 @@ public class FileRepository implements Repository {
 		String path = String.format("%s%s/%s", SESSIONS_DIRECTORY, sessionId, keyIndex);
 		File file = new File(path);
 
-		try(FileInputStream fileInputStream = new FileInputStream(file)) {
+		try (FileInputStream fileInputStream = new FileInputStream(file)) {
 			return fileInputStream.readAllBytes();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
@@ -116,21 +156,28 @@ public class FileRepository implements Repository {
 		deleteDirectory(new File(SESSIONS_DIRECTORY + sessionId));
 	}
 
-	private KeyInfo retrieveKey(UUID keyId, String extensionType) {
+
+	@Override
+	public PublicKeyInfo retrievePublicEncryptionKey(UUID keyId) {
 		byte[] bytes;
 		KeyType keyType = null;
+		PGPPublicKey encryptionKey;
 
-		try(FileInputStream fileInputStream = new FileInputStream(KEY_RING_DIRECTORY + keyId + extensionType)){
-			bytes = fileInputStream.readAllBytes();
+		try (ArmoredInputStream inputStream = new ArmoredInputStream(new FileInputStream(getPublicKeyFilePath(keyId)))) {
+			bytes = inputStream.readAllBytes();
+			JcaPGPPublicKeyRing pgpPublicKeys = new JcaPGPPublicKeyRing(bytes);
+			Iterator<PGPPublicKey> iterator = pgpPublicKeys.iterator();
+			iterator.next();
+			encryptionKey = iterator.next();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 
-		try(BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE))){
+		try (BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE))) {
 			List<String> lines = bufferedReader.lines().collect(Collectors.toList());
-			for(String line: lines){
+			for (String line : lines) {
 				String[] args = line.split(",");
-				if(args[3].equals(keyId.toString())) {
+				if (args[3].equals(keyId.toString())) {
 					keyType = KeyType.valueOf(args[4]);
 					break;
 				}
@@ -139,19 +186,46 @@ public class FileRepository implements Repository {
 			throw new RuntimeException(e);
 		}
 
-		if(keyType == null) {
+		if (keyType == null) {
 			throw new RuntimeException("couldnt find public key with key id: " + keyId);
 		}
-		return new KeyInfo(bytes, keyType);
-	}
-	@Override
-	public KeyInfo retrievePublicKey(UUID keyId) {
-		return retrieveKey(keyId, PUBLIC_KEY_EXTENSION);
+		return new PublicKeyInfo(encryptionKey, keyType);
 	}
 
 	@Override
-	public KeyInfo retrievePrivateKey(UUID keyId) {
-		return retrieveKey(keyId, PRIVATE_KEY_EXTENSION);
+	public SecretKeyInfo retrievePrivateEncryptionKey(UUID keyId) {
+		byte[] bytes;
+		KeyType keyType = null;
+		PGPSecretKey encryptionKey;
+
+		try (FileInputStream fileInputStream = new FileInputStream(getPrivateKeyFilePath(keyId))) {
+			bytes = fileInputStream.readAllBytes();
+			fileInputStream.close();
+			JcaPGPSecretKeyRing secretKeys = new JcaPGPSecretKeyRing(bytes);
+			Iterator<PGPSecretKey> iterator = secretKeys.iterator();
+			iterator.next(); // skip signing key
+			encryptionKey = iterator.next();
+		} catch (IOException | PGPException e) {
+			throw new RuntimeException(e);
+		}
+
+		try (BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE))) {
+			List<String> lines = bufferedReader.lines().collect(Collectors.toList());
+			for (String line : lines) {
+				String[] args = line.split(",");
+				if (args[3].equals(keyId.toString())) {
+					keyType = KeyType.valueOf(args[4]);
+					break;
+				}
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+
+		if (keyType == null) {
+			throw new RuntimeException("couldnt find public key with key id: " + keyId);
+		}
+		return new SecretKeyInfo(encryptionKey, keyType);
 	}
 
 	private void deleteDirectory(File directoryToBeDeleted) {
@@ -166,17 +240,15 @@ public class FileRepository implements Repository {
 
 	private void deleteKeyRecord(UUID keyId) {
 		String tempFileName = USERS_FILE + ".tmp";
-		try (
-				BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE));
-				BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(tempFileName))
-		) {
-			while(true) {
+		try (BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE));
+				BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(tempFileName))) {
+			while (true) {
 				String line = bufferedReader.readLine();
-				if(line == null) {
+				if (line == null) {
 					break;
 				}
 				UserKeyInfo userInfo = fromLine(line);
-				if(userInfo.getKeyId().equals(keyId)) {
+				if (userInfo.getKeyId().equals(keyId)) {
 					continue;
 				}
 				bufferedWriter.write(line);
@@ -193,10 +265,10 @@ public class FileRepository implements Repository {
 
 	private UserKeyInfo fromLine(String line) {
 		String[] args = line.split(",");
-		if (args.length != 5) {
+		if (args.length != 6) {
 			throw new RuntimeException("Error parsing user from file, line: " + line);
 		}
 
-		return new UserKeyInfo(args[0], args[1], args[2], UUID.fromString(args[3]), KeyType.valueOf(args[4]));
+		return new UserKeyInfo(args[0], args[1], args[2], UUID.fromString(args[3]), KeyType.valueOf(args[4]), KeyType.valueOf(args[5]));
 	}
 }

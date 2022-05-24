@@ -1,9 +1,12 @@
 package main.algorithms.symmetric;
 
 import lombok.AllArgsConstructor;
-import main.KeyInfo;
 import main.KeyType;
+import main.PublicKeyInfo;
+import main.SecretKeyInfo;
 import main.repositories.Repository;
+import org.bouncycastle.openpgp.PGPException;
+import org.bouncycastle.openpgp.operator.jcajce.JcaPGPKeyConverter;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -11,6 +14,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
@@ -37,14 +41,13 @@ public class TDES implements SymmetricStrategy {
 	private static final String ALGORITHM = "DESede";
 	private static final int KEY_SIZE = 112;
 	private static final int UUID_LENGTH = 36;
-	private static final Map<KeyType, Integer> ENCRYPTED_UUID_LENGTH = new HashMap<>(){{
+	private static final Map<KeyType, Integer> ENCRYPTED_UUID_LENGTH = new HashMap<>() {{
 		put(KeyType.ElGamal1024, 256);
 		put(KeyType.ElGamal2048, 512);
 		put(KeyType.ElGamal4096, 128);
 	}};
 
-	@Override
-	public byte[] encryptMessage(String message, String keyId) {
+	public byte[] encryptMessage(String message, UUID keyId) {
 		UUID sessionId = UUID.randomUUID();
 		byte[] encryptedMessage = message.getBytes();
 		for (int i = 0; i < 3; i++) {
@@ -71,21 +74,26 @@ public class TDES implements SymmetricStrategy {
 
 		try {
 			byte[] encryptedSessionId = sessionId.toString().getBytes();
-			KeyInfo keyInfo = this.repository.retrievePublicKey(UUID.fromString(keyId));
+			PublicKeyInfo publicKeyInfo = this.repository.retrievePublicEncryptionKey(keyId);
 			Cipher elgamalCipher = Cipher.getInstance("elgamal");
-			PublicKey publicKey = KeyFactory.getInstance("elgamal").generatePublic(new X509EncodedKeySpec(keyInfo.getBytes()));
+			JcaPGPKeyConverter converter = new JcaPGPKeyConverter();
+			converter.setProvider("BC");
+			PublicKey publicKey = converter.getPublicKey(publicKeyInfo.getPublicKey());
+			//			PublicKey publicKey = KeyFactory.getInstance("elgamal")
+//					.generatePublic(new X509EncodedKeySpec(publicKeyInfo.getPublicKey().getEncoded()));
 			elgamalCipher.init(Cipher.ENCRYPT_MODE, publicKey);
 			encryptedSessionId = elgamalCipher.doFinal(encryptedSessionId);
 
-			byte[] keyIdBytes = keyId.getBytes();
-			ByteBuffer byteBuffer = ByteBuffer.allocate(encryptedMessage.length + encryptedSessionId.length + keyIdBytes.length);
+			byte[] keyIdBytes = keyId.toString().getBytes();
+			ByteBuffer byteBuffer = ByteBuffer.allocate(
+					encryptedMessage.length + encryptedSessionId.length + keyIdBytes.length);
 			byteBuffer.put(keyIdBytes);
 			byteBuffer.put(encryptedSessionId);
 			byteBuffer.put(encryptedMessage);
 
 			return byteBuffer.array();
 		} catch (NoSuchPaddingException | IllegalBlockSizeException | NoSuchAlgorithmException | BadPaddingException |
-				 InvalidKeySpecException | InvalidKeyException e) {
+				 InvalidKeyException | PGPException e) {
 			throw new RuntimeException(e);
 		}
 	}
@@ -98,21 +106,23 @@ public class TDES implements SymmetricStrategy {
 		byte[] keyIdBytes = new byte[UUID_LENGTH];
 		System.arraycopy(encryptedMessage, cursor, keyIdBytes, 0, UUID_LENGTH);
 		cursor += UUID_LENGTH;
-		KeyInfo privateKeyInfo = this.repository.retrievePrivateKey(UUID.fromString(new String(keyIdBytes)));
+		SecretKeyInfo secretKeyInfo = this.repository.retrievePrivateEncryptionKey(
+				UUID.fromString(new String(keyIdBytes)));
 
-		int encryptedUUIDLength = ENCRYPTED_UUID_LENGTH.get(privateKeyInfo.getKeyType());
+		int encryptedUUIDLength = ENCRYPTED_UUID_LENGTH.get(secretKeyInfo.getKeyType());
 		byte[] encryptedSessionIdBytes = new byte[encryptedUUIDLength];
 		System.arraycopy(encryptedMessage, cursor, encryptedSessionIdBytes, 0, encryptedUUIDLength);
 		cursor += encryptedUUIDLength;
 
 		try {
 			Cipher elgamalCipher = Cipher.getInstance("elgamal");
-			PrivateKey privateKey = KeyFactory.getInstance("elgamal").generatePrivate(new PKCS8EncodedKeySpec(privateKeyInfo.getBytes()));
+			PrivateKey privateKey = KeyFactory.getInstance("elgamal")
+					.generatePrivate(new PKCS8EncodedKeySpec(secretKeyInfo.getSecretKey().getEncoded()));
 			elgamalCipher.init(Cipher.DECRYPT_MODE, privateKey);
 			byte[] sessionIdBytes = elgamalCipher.doFinal(encryptedSessionIdBytes);
 			sessionId = UUID.fromString(new String(sessionIdBytes));
 		} catch (NoSuchPaddingException | IllegalBlockSizeException | NoSuchAlgorithmException | BadPaddingException |
-				 InvalidKeySpecException | InvalidKeyException e) {
+				 InvalidKeySpecException | InvalidKeyException | IOException e) {
 			throw new RuntimeException(e);
 		}
 

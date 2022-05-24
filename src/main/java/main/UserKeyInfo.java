@@ -14,5 +14,6 @@ public class UserKeyInfo {
 	private String password;
 	private String email;
 	private UUID keyId;
-	private KeyType keyType;
+	private KeyType signatureKeyType;
+	private KeyType encryptionKeyType;
 }

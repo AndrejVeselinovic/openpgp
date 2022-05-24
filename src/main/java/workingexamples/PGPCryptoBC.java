@@ -1,7 +1,6 @@
 package workingexamples;
 
 import org.bouncycastle.jce.spec.ElGamalParameterSpec;
-import org.bouncycastle.openpgp.PGPKeyPair;
 import org.bouncycastle.openpgp.PGPKeyRingGenerator;
 
 import java.io.File;
@@ -22,7 +21,7 @@ public class PGPCryptoBC {
 
 			KeyPair dsaKeyPair = PGPTools.generateDsaKeyPair(1024);
 			KeyPair elGamalKeyPair = PGPTools.generateElGamalKeyPair(paramSpecs);
-			PGPKeyRingGenerator pgpKeyRingGen = PGPTools.createPGPKeyRingGenerator(dsaKeyPair, elGamalKeyPair, "test@gmail.com", "TestPass12345!".toCharArray());
+			PGPKeyRingGenerator pgpKeyRingGen = PGPTools.createPGPKeyRingGenerator(dsaKeyPair, "test@gmail.com", "TestPass12345!".toCharArray());
 
 			PGPTools.exportSecretKey(pgpKeyRingGen, new File("secret.asc"), true);
 			PGPTools.exportPublicKey(pgpKeyRingGen, new File("public.asc"), true);
