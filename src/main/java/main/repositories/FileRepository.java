@@ -1,8 +1,8 @@
 package main.repositories;
 
-import main.SecretKeyInfo;
-import main.PublicKeyInfo;
 import main.KeyType;
+import main.PublicKeyInfo;
+import main.SecretKeyInfo;
 import main.UserKeyInfo;
 import org.bouncycastle.bcpg.ArmoredInputStream;
 import org.bouncycastle.bcpg.ArmoredOutputStream;
@@ -198,7 +198,7 @@ public class FileRepository implements Repository {
 		KeyType keyType = null;
 		PGPSecretKey encryptionKey;
 
-		try (FileInputStream fileInputStream = new FileInputStream(getPrivateKeyFilePath(keyId))) {
+		try (ArmoredInputStream fileInputStream = new ArmoredInputStream(new FileInputStream(getPrivateKeyFilePath(keyId)))) {
 			bytes = fileInputStream.readAllBytes();
 			fileInputStream.close();
 			JcaPGPSecretKeyRing secretKeys = new JcaPGPSecretKeyRing(bytes);
@@ -226,6 +226,15 @@ public class FileRepository implements Repository {
 			throw new RuntimeException("couldnt find public key with key id: " + keyId);
 		}
 		return new SecretKeyInfo(encryptionKey, keyType);
+	}
+
+	@Override
+	public byte[] retrievePublicKey(UUID keyId) {
+		try (ArmoredInputStream inputStream = new ArmoredInputStream(new FileInputStream(getPublicKeyFilePath(keyId)))){
+			return inputStream.readAllBytes();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	private void deleteDirectory(File directoryToBeDeleted) {

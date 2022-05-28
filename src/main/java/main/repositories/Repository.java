@@ -24,4 +24,6 @@ public interface Repository {
 	PublicKeyInfo retrievePublicEncryptionKey(UUID keyId);
 
 	SecretKeyInfo retrievePrivateEncryptionKey(UUID keyId);
+
+	public byte[] retrievePublicKey(UUID keyId);
 }

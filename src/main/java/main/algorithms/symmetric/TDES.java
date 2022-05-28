@@ -2,29 +2,30 @@ package main.algorithms.symmetric;
 
 import lombok.AllArgsConstructor;
 import main.KeyType;
-import main.PublicKeyInfo;
 import main.SecretKeyInfo;
 import main.repositories.Repository;
-import org.bouncycastle.openpgp.PGPException;
-import org.bouncycastle.openpgp.operator.jcajce.JcaPGPKeyConverter;
+import org.bouncycastle.crypto.BufferedBlockCipher;
+import org.bouncycastle.crypto.InvalidCipherTextException;
+import org.bouncycastle.crypto.engines.DESedeEngine;
+import org.bouncycastle.crypto.modes.CBCBlockCipher;
+import org.bouncycastle.crypto.paddings.PaddedBufferedBlockCipher;
+import org.bouncycastle.crypto.params.KeyParameter;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.PublicKey;
 import java.security.Security;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -47,53 +48,73 @@ public class TDES implements SymmetricStrategy {
 		put(KeyType.ElGamal4096, 128);
 	}};
 
+//	public byte[] encryptMessage(String message, UUID keyId) {
+//		UUID sessionId = UUID.randomUUID();
+//		byte[] encryptedMessage = message.getBytes();
+//		for (int i = 0; i < 3; i++) {
+//			try {
+//				// generate a key
+//				KeyGenerator keygen = KeyGenerator.getInstance(ALGORITHM);
+//				keygen.init(KEY_SIZE);
+//				byte[] key = keygen.generateKey().getEncoded();
+//				repository.persistSessionKey(sessionId, i, key);
+//
+//				SecretKeySpec secretKeySpec = new SecretKeySpec(key, ALGORITHM);
+//
+//				// initialize the cipher for encrypt mode
+//				Cipher cipher = Cipher.getInstance(ALGORITHM);
+//				cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
+//
+//				encryptedMessage = cipher.doFinal(encryptedMessage);
+//
+//			} catch (NoSuchAlgorithmException | InvalidKeyException | NoSuchPaddingException |
+//					 IllegalBlockSizeException | BadPaddingException e) {
+//				throw new RuntimeException(e);
+//			}
+//		}
+//
+//		try {
+//			byte[] encryptedSessionId = sessionId.toString().getBytes();
+//			PublicKeyInfo publicKeyInfo = this.repository.retrievePublicEncryptionKey(keyId);
+//			Cipher elgamalCipher = Cipher.getInstance("elgamal");
+//			JcaPGPKeyConverter converter = new JcaPGPKeyConverter();
+//			converter.setProvider("BC");
+//			PublicKey publicKey = converter.getPublicKey(publicKeyInfo.getPublicKey());
+//			//			PublicKey publicKey = KeyFactory.getInstance("elgamal")
+////					.generatePublic(new X509EncodedKeySpec(publicKeyInfo.getPublicKey().getEncoded()));
+//			elgamalCipher.init(Cipher.ENCRYPT_MODE, publicKey);
+//			encryptedSessionId = elgamalCipher.doFinal(encryptedSessionId);
+//
+//			byte[] keyIdBytes = keyId.toString().getBytes();
+//			ByteBuffer byteBuffer = ByteBuffer.allocate(
+//					encryptedMessage.length + encryptedSessionId.length + keyIdBytes.length);
+//			byteBuffer.put(keyIdBytes);
+//			byteBuffer.put(encryptedSessionId);
+//			byteBuffer.put(encryptedMessage);
+//
+//			return byteBuffer.array();
+//		} catch (NoSuchPaddingException | IllegalBlockSizeException | NoSuchAlgorithmException | BadPaddingException |
+//				 InvalidKeyException | PGPException e) {
+//			throw new RuntimeException(e);
+//		}
+//	}
+
+	@Override
 	public byte[] encryptMessage(String message, UUID keyId) {
-		UUID sessionId = UUID.randomUUID();
-		byte[] encryptedMessage = message.getBytes();
-		for (int i = 0; i < 3; i++) {
-			try {
-				// generate a key
-				KeyGenerator keygen = KeyGenerator.getInstance(ALGORITHM);
-				keygen.init(KEY_SIZE);
-				byte[] key = keygen.generateKey().getEncoded();
-				repository.persistSessionKey(sessionId, i, key);
-
-				SecretKeySpec secretKeySpec = new SecretKeySpec(key, ALGORITHM);
-
-				// initialize the cipher for encrypt mode
-				Cipher cipher = Cipher.getInstance(ALGORITHM);
-				cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
-
-				encryptedMessage = cipher.doFinal(encryptedMessage);
-
-			} catch (NoSuchAlgorithmException | InvalidKeyException | NoSuchPaddingException |
-					 IllegalBlockSizeException | BadPaddingException e) {
-				throw new RuntimeException(e);
-			}
-		}
-
+		byte[] messageBytes = message.getBytes();
 		try {
-			byte[] encryptedSessionId = sessionId.toString().getBytes();
-			PublicKeyInfo publicKeyInfo = this.repository.retrievePublicEncryptionKey(keyId);
-			Cipher elgamalCipher = Cipher.getInstance("elgamal");
-			JcaPGPKeyConverter converter = new JcaPGPKeyConverter();
-			converter.setProvider("BC");
-			PublicKey publicKey = converter.getPublicKey(publicKeyInfo.getPublicKey());
-			//			PublicKey publicKey = KeyFactory.getInstance("elgamal")
-//					.generatePublic(new X509EncodedKeySpec(publicKeyInfo.getPublicKey().getEncoded()));
-			elgamalCipher.init(Cipher.ENCRYPT_MODE, publicKey);
-			encryptedSessionId = elgamalCipher.doFinal(encryptedSessionId);
+			KeyGenerator keyGenerator = KeyGenerator.getInstance(ALGORITHM);
+			keyGenerator.init(168);
+			SecretKey secretKey = keyGenerator.generateKey();
 
-			byte[] keyIdBytes = keyId.toString().getBytes();
-			ByteBuffer byteBuffer = ByteBuffer.allocate(
-					encryptedMessage.length + encryptedSessionId.length + keyIdBytes.length);
-			byteBuffer.put(keyIdBytes);
-			byteBuffer.put(encryptedSessionId);
-			byteBuffer.put(encryptedMessage);
+			BufferedBlockCipher cipher = new PaddedBufferedBlockCipher(new CBCBlockCipher(new DESedeEngine()));
 
-			return byteBuffer.array();
-		} catch (NoSuchPaddingException | IllegalBlockSizeException | NoSuchAlgorithmException | BadPaddingException |
-				 InvalidKeyException | PGPException e) {
+			cipher.init(true, new KeyParameter(secretKey.getEncoded()));
+			byte[] result = new byte[cipher.getOutputSize(messageBytes.length)];
+			int numberOfCopiedBytes = cipher.processBytes(messageBytes, 0, messageBytes.length, result, 0);
+			cipher.doFinal(result, numberOfCopiedBytes);
+			return result;
+		} catch (NoSuchAlgorithmException | InvalidCipherTextException e) {
 			throw new RuntimeException(e);
 		}
 	}

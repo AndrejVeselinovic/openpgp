@@ -2,7 +2,6 @@ package main;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.bouncycastle.openpgp.PGPPrivateKey;
 import org.bouncycastle.openpgp.PGPSecretKey;
 
 @AllArgsConstructor
