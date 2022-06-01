@@ -18,39 +18,32 @@ import java.io.InputStream;
 public class DecryptionAlgorithm {
 
 	public static byte[] decrypt(byte[] pgpEncryptedData, PGPPrivateKey privateKey) {
-		try{
+		try {
 			PGPObjectFactory pgpFact = new JcaPGPObjectFactory(pgpEncryptedData);
-			PGPEncryptedDataList encList = (PGPEncryptedDataList)pgpFact.nextObject();
+			PGPEncryptedDataList encList = (PGPEncryptedDataList) pgpFact.nextObject();
 			// find the matching public key encrypted data packet.
 			PGPPublicKeyEncryptedData encData = null;
-			for (PGPEncryptedData pgpEnc: encList)
-			{
-				PGPPublicKeyEncryptedData pkEnc
-						= (PGPPublicKeyEncryptedData)pgpEnc;
-				if (pkEnc.getKeyID() == privateKey.getKeyID())
-				{
+			for (PGPEncryptedData pgpEnc : encList) {
+				PGPPublicKeyEncryptedData pkEnc = (PGPPublicKeyEncryptedData) pgpEnc;
+				if (pkEnc.getKeyID() == privateKey.getKeyID()) {
 					encData = pkEnc;
 					break;
 				}
 			}
-			if (encData == null)
-			{
+			if (encData == null) {
 				throw new IllegalStateException("matching encrypted data not found");
 			}
 			// build decryptor factory
-			PublicKeyDataDecryptorFactory dataDecryptorFactory =
-					new JcePublicKeyDataDecryptorFactoryBuilder()
-							.setProvider("BC")
-							.build(privateKey);
+			PublicKeyDataDecryptorFactory dataDecryptorFactory = new JcePublicKeyDataDecryptorFactoryBuilder().setProvider(
+					"BC").build(privateKey);
 			InputStream clear = encData.getDataStream(dataDecryptorFactory);
 			byte[] literalData = Streams.readAll(clear);
 			clear.close();
 			// check data decrypts okay
-			if (encData.verify())
-			{
+			if (encData.verify()) {
 				// parse out literal data
 				PGPObjectFactory litFact = new JcaPGPObjectFactory(literalData);
-				PGPLiteralData litData = (PGPLiteralData)litFact.nextObject();
+				PGPLiteralData litData = (PGPLiteralData) litFact.nextObject();
 				byte[] data = Streams.readAll(litData.getInputStream());
 				return data;
 			}

@@ -115,6 +115,6 @@ public class OpenPGP {
 		byte[] encryptedBytes = openPGP.encrypt(message, keyPairUuid, encryptionAlgorithm);
 		flushToFile(encryptedBytes, "message.txt");
 		String decryptedString = openPGP.decrypt(encryptedBytes, password, keyPairUuid);
-		flushToFile(decryptedString.getBytes(), "messageDone.txt");
+		System.out.println(decryptedString);
 	}
 }
