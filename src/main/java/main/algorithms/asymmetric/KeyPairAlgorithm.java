@@ -1,7 +1,7 @@
 package main.algorithms.asymmetric;
 
 import lombok.AllArgsConstructor;
-import main.KeyType;
+import main.dtos.KeyType;
 import org.bouncycastle.openpgp.PGPKeyPair;
 
 import java.security.KeyPair;

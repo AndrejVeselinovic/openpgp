@@ -1,4 +1,4 @@
-package workingexamples;
+package main.workingexamples;
 
 import org.bouncycastle.bcpg.SymmetricKeyAlgorithmTags;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;

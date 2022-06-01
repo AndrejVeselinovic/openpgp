@@ -1,4 +1,4 @@
-package workingexamples;
+package main.workingexamples;
 
 import org.bouncycastle.jce.spec.ElGamalParameterSpec;
 import org.bouncycastle.openpgp.PGPKeyRingGenerator;

@@ -1,8 +1,8 @@
 package main.repositories;
 
-import main.SecretKeyInfo;
-import main.PublicKeyInfo;
-import main.UserKeyInfo;
+import main.dtos.PublicKeyInfo;
+import main.dtos.SecretKeyInfo;
+import main.dtos.UserKeyInfo;
 import org.bouncycastle.openpgp.PGPKeyRingGenerator;
 
 import java.util.List;

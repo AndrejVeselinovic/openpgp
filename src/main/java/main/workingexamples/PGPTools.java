@@ -1,4 +1,4 @@
-package workingexamples;
+package main.workingexamples;
 
 import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.bcpg.HashAlgorithmTags;

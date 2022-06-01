@@ -1,9 +1,7 @@
 package main.algorithms.asymmetric;
 
-import main.KeyType;
+import main.dtos.KeyType;
 import org.bouncycastle.openpgp.PGPKeyPair;
-
-import java.security.KeyPair;
 
 public interface AsymmetricStrategy {
 	PGPKeyPair generateKeyPair(int size);

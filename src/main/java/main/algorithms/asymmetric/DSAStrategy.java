@@ -2,7 +2,7 @@ package main.algorithms.asymmetric;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import main.KeyType;
+import main.dtos.KeyType;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPKeyPair;
 import org.bouncycastle.openpgp.PGPPublicKey;

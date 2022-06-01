@@ -1,4 +1,4 @@
-package workingexamples;
+package main.workingexamples;
 
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidAlgorithmParameterException;

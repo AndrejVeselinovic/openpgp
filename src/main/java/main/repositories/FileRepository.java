@@ -1,9 +1,9 @@
 package main.repositories;
 
-import main.KeyType;
-import main.PublicKeyInfo;
-import main.SecretKeyInfo;
-import main.UserKeyInfo;
+import main.dtos.KeyType;
+import main.dtos.PublicKeyInfo;
+import main.dtos.SecretKeyInfo;
+import main.dtos.UserKeyInfo;
 import org.bouncycastle.bcpg.ArmoredInputStream;
 import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.openpgp.PGPException;

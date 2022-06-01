@@ -2,7 +2,7 @@ package main.algorithms.asymmetric;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import main.KeyType;
+import main.dtos.KeyType;
 import org.bouncycastle.jce.spec.ElGamalParameterSpec;
 import org.bouncycastle.openpgp.PGPKeyPair;
 
