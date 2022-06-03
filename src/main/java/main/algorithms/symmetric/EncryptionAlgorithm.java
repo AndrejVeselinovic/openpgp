@@ -15,7 +15,9 @@ import java.util.UUID;
 
 @AllArgsConstructor
 public enum EncryptionAlgorithm {
-	TDESWithEDE(new TripleDes());
+	TRIPLE_DES(new TripleDes()),
+	CAST5(new Cast5());
+
 
 	private final SymmetricEncryptionStrategy symmetricEncryptionStrategy;
 	private static final Repository repository = new FileRepository();

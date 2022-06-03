@@ -110,7 +110,7 @@ public class OpenPGP {
 
 		String message = "test";
 		UUID keyPairUuid = UUID.fromString("aeec0789-40c4-4b2e-86c2-4943bbff198e");
-		EncryptionAlgorithm encryptionAlgorithm = EncryptionAlgorithm.TDESWithEDE;
+		EncryptionAlgorithm encryptionAlgorithm = EncryptionAlgorithm.CAST5;
 		String password = "123";
 		byte[] encryptedBytes = openPGP.encrypt(message, keyPairUuid, encryptionAlgorithm);
 		flushToFile(encryptedBytes, "message.txt");
