@@ -156,19 +156,19 @@ public class FileRepository implements Repository {
 		deleteDirectory(new File(SESSIONS_DIRECTORY + sessionId));
 	}
 
-
-	@Override
-	public PublicKeyInfo retrievePublicEncryptionKey(UUID keyId) {
+	private PublicKeyInfo getPublicKey(UUID keyId, int keyType) {
 		byte[] bytes;
-		KeyType keyType = null;
+		KeyType keyInfoType = null;
 		PGPPublicKey encryptionKey;
 
 		try (ArmoredInputStream inputStream = new ArmoredInputStream(new FileInputStream(getPublicKeyFilePath(keyId)))) {
 			bytes = inputStream.readAllBytes();
 			JcaPGPPublicKeyRing pgpPublicKeys = new JcaPGPPublicKeyRing(bytes);
 			Iterator<PGPPublicKey> iterator = pgpPublicKeys.iterator();
-			iterator.next();
-			encryptionKey = iterator.next();
+			encryptionKey = iterator.next(); //signing key
+			if(keyType == 2) {
+				encryptionKey = iterator.next(); //encryption key
+			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -178,7 +178,7 @@ public class FileRepository implements Repository {
 			for (String line : lines) {
 				String[] args = line.split(",");
 				if (args[3].equals(keyId.toString())) {
-					keyType = KeyType.valueOf(args[4]);
+					keyInfoType = KeyType.valueOf(args[4]);
 					break;
 				}
 			}
@@ -186,16 +186,15 @@ public class FileRepository implements Repository {
 			throw new RuntimeException(e);
 		}
 
-		if (keyType == null) {
+		if (keyInfoType == null) {
 			throw new RuntimeException("couldnt find public key with key id: " + keyId);
 		}
-		return new PublicKeyInfo(encryptionKey, keyType);
+		return new PublicKeyInfo(encryptionKey, keyInfoType);
 	}
 
-	@Override
-	public SecretKeyInfo retrievePrivateEncryptionKey(UUID keyId) {
+	private SecretKeyInfo getPrivateKey(UUID keyId, int keyType) {
 		byte[] bytes;
-		KeyType keyType = null;
+		KeyType keyInfoType = null;
 		PGPSecretKey encryptionKey;
 
 		try (ArmoredInputStream fileInputStream = new ArmoredInputStream(new FileInputStream(getPrivateKeyFilePath(keyId)))) {
@@ -203,8 +202,10 @@ public class FileRepository implements Repository {
 			fileInputStream.close();
 			JcaPGPSecretKeyRing secretKeys = new JcaPGPSecretKeyRing(bytes);
 			Iterator<PGPSecretKey> iterator = secretKeys.iterator();
-			iterator.next(); // skip signing key
-			encryptionKey = iterator.next();
+			encryptionKey = iterator.next(); //signing key
+			if(keyType == 2) {
+				encryptionKey = iterator.next(); //encryption key
+			}
 		} catch (IOException | PGPException e) {
 			throw new RuntimeException(e);
 		}
@@ -214,7 +215,7 @@ public class FileRepository implements Repository {
 			for (String line : lines) {
 				String[] args = line.split(",");
 				if (args[3].equals(keyId.toString())) {
-					keyType = KeyType.valueOf(args[4]);
+					keyInfoType = KeyType.valueOf(args[4]);
 					break;
 				}
 			}
@@ -222,10 +223,30 @@ public class FileRepository implements Repository {
 			throw new RuntimeException(e);
 		}
 
-		if (keyType == null) {
-			throw new RuntimeException("couldnt find public key with key id: " + keyId);
+		if (keyInfoType == null) {
+			throw new RuntimeException("couldnt find private key with key id: " + keyId);
 		}
-		return new SecretKeyInfo(encryptionKey, keyType);
+		return new SecretKeyInfo(encryptionKey, keyInfoType);
+	}
+
+	@Override
+	public PublicKeyInfo getPublicEncryptionKey(UUID keyId) {
+		return getPublicKey(keyId, 2);
+	}
+
+	@Override
+	public PublicKeyInfo getPublicSigningKey(UUID keyId) {
+		return getPublicKey(keyId, 1);
+	}
+
+	@Override
+	public SecretKeyInfo getSecretEncryptionKey(UUID keyId) {
+		return getPrivateKey(keyId, 2);
+	}
+
+	@Override
+	public SecretKeyInfo getSecretSigningKey(UUID keyId) {
+		return getPrivateKey(keyId, 1);
 	}
 
 	@Override

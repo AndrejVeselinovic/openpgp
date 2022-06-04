@@ -4,7 +4,7 @@ import org.bouncycastle.bcpg.SymmetricKeyAlgorithmTags;
 
 import java.security.Security;
 
-public class TripleDes implements SymmetricEncryptionStrategy {
+public class TripleDes extends SymmetricEncryptionStrategy {
 
 	static {
 		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());

@@ -1,8 +1,9 @@
-package main.algorithms.symmetric;
+package main.workingexamples;
 
 import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.bcpg.CompressionAlgorithmTags;
 import org.bouncycastle.openpgp.PGPCompressedDataGenerator;
+import org.bouncycastle.openpgp.PGPEncryptedData;
 import org.bouncycastle.openpgp.PGPEncryptedDataGenerator;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPLiteralData;
@@ -17,9 +18,13 @@ import java.io.OutputStream;
 import java.security.SecureRandom;
 import java.util.Date;
 
-public abstract class SymmetricEncryptionStrategy {
-	public byte[] encrypt(byte[] data, PGPPublicKey publicKey, boolean shouldCompress) throws IOException, PGPException {
-		byte[] compressedData = compress(data, shouldCompress);
+public class PGPEncrypt {
+	private PGPEncrypt() {
+		throw new IllegalAccessError("Utility class");
+	}
+
+	public static byte[] encrypt(byte[] data, PGPPublicKey publicKey) throws IOException, PGPException {
+		byte[] compressedData = compress(data);
 
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
@@ -36,10 +41,9 @@ public abstract class SymmetricEncryptionStrategy {
 		return bos.toByteArray();
 	}
 
-	private PGPEncryptedDataGenerator getEncryptedGenerator(PGPPublicKey publicKey) {
-		int symmetricKeyAlgorithmTag = getSymmetricKeyAlgorithmTag();
+	private static PGPEncryptedDataGenerator getEncryptedGenerator(PGPPublicKey publicKey) {
 		PGPEncryptedDataGenerator encGen = new PGPEncryptedDataGenerator(
-				new JcePGPDataEncryptorBuilder(symmetricKeyAlgorithmTag).setWithIntegrityPacket(true)
+				new JcePGPDataEncryptorBuilder(PGPEncryptedData.CAST5).setWithIntegrityPacket(true)
 						.setSecureRandom(new SecureRandom())
 						.setProvider("BC"));
 
@@ -48,12 +52,8 @@ public abstract class SymmetricEncryptionStrategy {
 		return encGen;
 	}
 
-	private byte[] compress(byte[] data, boolean shouldCompress) throws IOException {
-		int compressionAlgorithmTag = CompressionAlgorithmTags.UNCOMPRESSED;
-		if(shouldCompress) {
-			compressionAlgorithmTag = CompressionAlgorithmTags.ZIP;
-		}
-		PGPCompressedDataGenerator compressGen = new PGPCompressedDataGenerator(compressionAlgorithmTag);
+	private static byte[] compress(byte data[]) throws IOException {
+		PGPCompressedDataGenerator compressGen = new PGPCompressedDataGenerator(CompressionAlgorithmTags.UNCOMPRESSED);
 
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
@@ -70,6 +70,4 @@ public abstract class SymmetricEncryptionStrategy {
 
 		return bos.toByteArray();
 	}
-
-	abstract int getSymmetricKeyAlgorithmTag();
 }

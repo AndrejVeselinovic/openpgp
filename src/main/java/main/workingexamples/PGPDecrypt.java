@@ -1,4 +1,4 @@
-package main.algorithms.symmetric;
+package main.workingexamples;
 
 import org.bouncycastle.openpgp.PGPCompressedData;
 import org.bouncycastle.openpgp.PGPDataValidationException;
@@ -19,7 +19,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Iterator;
 
-public class DecryptionAlgorithm {
+public class PGPDecrypt {
+
+	private PGPDecrypt() {
+		throw new IllegalAccessError("Utility class");
+	}
+
 	public static byte[] decrypt(byte[] encData, PGPPrivateKey privateKey) throws PGPException, IOException {
 		PGPPublicKeyEncryptedData pgpEncData = getPGPEncryptedData(encData);
 

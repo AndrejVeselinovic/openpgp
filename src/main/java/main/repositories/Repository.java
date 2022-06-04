@@ -21,9 +21,13 @@ public interface Repository {
 
 	void deleteSessionKey(UUID sessionId);
 
-	PublicKeyInfo retrievePublicEncryptionKey(UUID keyId);
+	SecretKeyInfo getSecretEncryptionKey(UUID keyId);
 
-	SecretKeyInfo retrievePrivateEncryptionKey(UUID keyId);
+	SecretKeyInfo getSecretSigningKey(UUID keyId);
 
-	public byte[] retrievePublicKey(UUID keyId);
+	PublicKeyInfo getPublicEncryptionKey(UUID keyId);
+
+	PublicKeyInfo getPublicSigningKey(UUID keyId);
+
+	byte[] retrievePublicKey(UUID keyId);
 }
