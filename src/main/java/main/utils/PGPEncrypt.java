@@ -1,4 +1,10 @@
-package main.workingexamples;
+package main.utils;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.security.SecureRandom;
+import java.util.Date;
 
 import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.bcpg.CompressionAlgorithmTags;
@@ -12,25 +18,19 @@ import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.operator.jcajce.JcePGPDataEncryptorBuilder;
 import org.bouncycastle.openpgp.operator.jcajce.JcePublicKeyKeyEncryptionMethodGenerator;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.security.SecureRandom;
-import java.util.Date;
-
 public class PGPEncrypt {
 	private PGPEncrypt() {
 		throw new IllegalAccessError("Utility class");
 	}
 
-	public static byte[] encrypt(byte[] data, PGPPublicKey publicKey) throws IOException, PGPException {
-		byte[] compressedData = compress(data);
+	public static byte[] encrypt(byte[] data, PGPPublicKey publicKey, int algorithmTag, boolean shouldCompress) throws IOException, PGPException {
+		byte[] compressedData = compress(data, shouldCompress);
 
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
 		ArmoredOutputStream aos = new ArmoredOutputStream(bos);
 
-		OutputStream encOut = getEncryptedGenerator(publicKey).open(aos, compressedData.length);
+		OutputStream encOut = getEncryptedGenerator(publicKey, algorithmTag).open(aos, compressedData.length);
 
 		encOut.write(compressedData);
 
@@ -41,9 +41,9 @@ public class PGPEncrypt {
 		return bos.toByteArray();
 	}
 
-	private static PGPEncryptedDataGenerator getEncryptedGenerator(PGPPublicKey publicKey) {
+	private static PGPEncryptedDataGenerator getEncryptedGenerator(PGPPublicKey publicKey, int algorithmTag) {
 		PGPEncryptedDataGenerator encGen = new PGPEncryptedDataGenerator(
-				new JcePGPDataEncryptorBuilder(PGPEncryptedData.CAST5).setWithIntegrityPacket(true)
+				new JcePGPDataEncryptorBuilder(algorithmTag).setWithIntegrityPacket(true)
 						.setSecureRandom(new SecureRandom())
 						.setProvider("BC"));
 
@@ -52,15 +52,19 @@ public class PGPEncrypt {
 		return encGen;
 	}
 
-	private static byte[] compress(byte data[]) throws IOException {
-		PGPCompressedDataGenerator compressGen = new PGPCompressedDataGenerator(CompressionAlgorithmTags.UNCOMPRESSED);
+	private static byte[] compress(byte[] data, boolean shouldCompress) throws IOException {
+		int compressionAlgorithmTag = CompressionAlgorithmTags.UNCOMPRESSED;
+		if(shouldCompress) {
+			compressionAlgorithmTag = CompressionAlgorithmTags.ZIP;
+		}
+		PGPCompressedDataGenerator compressGen = new PGPCompressedDataGenerator(compressionAlgorithmTag);
 
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
 		OutputStream compressOut = compressGen.open(bos);
 
-		OutputStream os = new PGPLiteralDataGenerator().open(compressOut, PGPLiteralData.BINARY,
-				PGPLiteralDataGenerator.CONSOLE, data.length, new Date());
+		OutputStream os = new PGPLiteralDataGenerator().open(compressOut, PGPLiteralData.BINARY, "", data.length,
+				new Date());
 
 		os.write(data);
 

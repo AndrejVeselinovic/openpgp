@@ -6,6 +6,7 @@ import main.algorithms.symmetric.EncryptionAlgorithm;
 import main.dtos.UserKeyInfo;
 import main.repositories.FileRepository;
 import main.repositories.Repository;
+import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.bcpg.HashAlgorithmTags;
 import org.bouncycastle.openpgp.PGPEncryptedData;
 import org.bouncycastle.openpgp.PGPException;
@@ -23,6 +24,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
@@ -78,23 +80,36 @@ public class OpenPGP {
 		repository.deleteKeyPair(keyId);
 	}
 
-	public byte[] encrypt(String message, UUID publicKeyUuid, EncryptionAlgorithm encryptionAlgorithm, UUID keyToSignMessageWith, boolean shouldCompress) {
+	public byte[] encrypt(
+			String message,
+			UUID publicKeyUuid,
+			EncryptionAlgorithm encryptionAlgorithm,
+			boolean shouldCompress,
+			UUID keyToSignMessageWith,
+			String signingKeyPassword,
+			boolean shouldEncode
+	) {
 		try {
-			return encryptionAlgorithm.encryptMessage(message, publicKeyUuid, keyToSignMessageWith, shouldCompress);
+			return encryptionAlgorithm.encryptMessage(message, publicKeyUuid, shouldCompress,
+					keyToSignMessageWith, signingKeyPassword, shouldEncode);
 		} catch (IOException | PGPException | GeneralSecurityException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
 	public String decrypt(byte[] message, String password, UUID privateKeyUuid) {
-		return EncryptionAlgorithm.decryptMessage(message, password, privateKeyUuid);
+		try {
+			return EncryptionAlgorithm.decryptMessage(message, password, privateKeyUuid);
+		} catch (PGPException | IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
-	private static void flushToFile(byte[] bytes) {
+	public static void flushToFile(byte[] bytes) {
 		flushToFile(bytes, "test.txt");
 	}
 
-	private static void flushToFile(byte[] bytes, String filename) {
+	public static void flushToFile(byte[] bytes, String filename) {
 		try {
 //			ArmoredOutputStream armoredOutputStream = new ArmoredOutputStream(new FileOutputStream(filename));
 //			armoredOutputStream.write(bytes);
@@ -119,7 +134,7 @@ public class OpenPGP {
 		UUID keyPairUuid = UUID.fromString("aeec0789-40c4-4b2e-86c2-4943bbff198e");
 		EncryptionAlgorithm encryptionAlgorithm = EncryptionAlgorithm.CAST5;
 		String password = "123";
-		byte[] encryptedBytes = openPGP.encrypt(message, keyPairUuid, encryptionAlgorithm, null, true);
+		byte[] encryptedBytes = openPGP.encrypt(message, keyPairUuid, encryptionAlgorithm, true, keyPairUuid, password, true);
 		System.out.println("Successfully encrypted");
 		flushToFile(encryptedBytes, "message.txt");
 		String decryptedString = openPGP.decrypt(encryptedBytes, password, keyPairUuid);

@@ -1,4 +1,4 @@
-package main.workingexamples;
+package main.utils;
 
 import org.bouncycastle.openpgp.PGPCompressedData;
 import org.bouncycastle.openpgp.PGPDataValidationException;
