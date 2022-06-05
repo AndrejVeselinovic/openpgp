@@ -6,12 +6,14 @@ import main.dtos.UserKeyInfo;
 import main.repositories.FileRepository;
 
 import javax.swing.*;
-import javax.swing.border.Border;
 import javax.swing.table.TableColumnModel;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
+import java.util.Objects;
+
+import static javax.swing.JOptionPane.showMessageDialog;
 
 public class FirstSwingExample {
 	private static final OpenPGP OPENPGP_CLIENT = new OpenPGP(new FileRepository());
@@ -69,11 +71,45 @@ public class FirstSwingExample {
 	private static JDialog getGenerateKeyPairDialog() {
 		JDialog dialog = new JDialog();
 		JPanel panel = new JPanel();
+		panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 
-		JList<KeyPairAlgorithm> signingAlgorithms = new JList<>(KeyPairAlgorithm.getSigningAlgorithms());
-		panel.add(signingAlgorithms);
-		JList<KeyPairAlgorithm> encryptionAlgorithms = new JList<>(KeyPairAlgorithm.getEncryptionAlgorithms());
-		panel.add(encryptionAlgorithms);
+		JPanel emailPanel = new JPanel();
+		JLabel emailLabel = new JLabel("Email: ");
+		JTextField emailTextField = new JTextField(20);
+		emailPanel.add(emailLabel);
+		emailPanel.add(emailTextField);
+
+
+		JPanel usernamePanel = new JPanel();
+		JLabel usernameLabel = new JLabel("Username: ");
+		JTextField usernameTextField = new JTextField(20);
+		usernamePanel.add(usernameLabel);
+		usernamePanel.add(usernameTextField);
+
+		JPanel signingAlgPanel = new JPanel();
+		JLabel signingAlLabel = new JLabel("Signing algorithm");
+		JComboBox<KeyPairAlgorithm> signingAlgorithms = new JComboBox<>(KeyPairAlgorithm.getSigningAlgorithms());
+		signingAlgPanel.add(signingAlLabel);
+		signingAlgPanel.add(signingAlgorithms);
+
+		JPanel ecnryptAlgPanel = new JPanel();
+		JLabel encryptAlLabel = new JLabel("Encryption algorithm");
+		JComboBox<KeyPairAlgorithm> encryptionAlgorithms = new JComboBox<>(KeyPairAlgorithm.getEncryptionAlgorithms());
+		ecnryptAlgPanel.add(encryptAlLabel);
+		ecnryptAlgPanel.add(encryptionAlgorithms);
+
+
+		JPanel passwordPKPanel = new JPanel();
+		JLabel passwordPKLabel = new JLabel("PasswordPK: ");
+		JTextField passwordPKTextField = new JTextField(20);
+		passwordPKPanel.add(passwordPKLabel);
+		passwordPKPanel.add(passwordPKTextField);
+
+		panel.add(emailPanel);
+		panel.add(usernamePanel);
+		panel.add(signingAlgPanel);
+		panel.add(ecnryptAlgPanel);
+		panel.add(passwordPKPanel);
 
 		dialog.add(panel);
 		dialog.setSize((int) (WINDOW_WIDTH * 0.6), (int) (WINDOW_HEIGHT * 0.6));
@@ -81,16 +117,37 @@ public class FirstSwingExample {
 
 		JPanel buttonPanel = new JPanel();
 
-		buttonPanel.add(getGenerateKeyPairDialogButton());
+		buttonPanel.add(getGenerateKeyPairDialogButton(usernameTextField, emailTextField, passwordPKTextField,
+				encryptionAlgorithms, signingAlgorithms));
 
 		dialog.add(buttonPanel, BorderLayout.SOUTH);
 		return dialog;
 	}
 
-	private static JButton getGenerateKeyPairDialogButton(){
+	private static JButton getGenerateKeyPairDialogButton(JTextField usernameTextField,
+														  JTextField emailTextField,
+														  JTextField passwordPKTextField,
+														  JComboBox<KeyPairAlgorithm> encryptionAlgorithms,
+														  JComboBox<KeyPairAlgorithm> signingAlgorithms){
 		JButton generateButton = new JButton("Generate");
 
-		generateButton.addActionListener(e -> refreshMainPanel());
+		generateButton.addActionListener(e -> {
+			if (
+					Objects.equals(usernameTextField.getText(), "")
+					|| Objects.equals(emailTextField.getText(), "")
+					|| Objects.equals(passwordPKTextField.getText(), "")
+					|| encryptionAlgorithms.getSelectedItem() == null
+					|| signingAlgorithms.getSelectedItem() == null)
+			{
+				showMessageDialog(null, "All fields should be filled!");
+			}
+			else{
+				OPENPGP_CLIENT.generateKeyPair(usernameTextField.getText(), emailTextField.getText(),
+						passwordPKTextField.getText(), (KeyPairAlgorithm) signingAlgorithms.getSelectedItem(),
+						(KeyPairAlgorithm) encryptionAlgorithms.getSelectedItem());
+				refreshMainPanel();
+			}
+		});
 		return generateButton;
 	}
 
