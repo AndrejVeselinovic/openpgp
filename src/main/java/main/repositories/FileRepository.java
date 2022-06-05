@@ -35,6 +35,11 @@ public class FileRepository implements Repository {
 	private static final String SESSIONS_DIRECTORY = "sessions/";
 
 	static {
+		File keyRingDir = new File(KEY_RING_DIRECTORY);
+		if (!keyRingDir.exists()){
+			keyRingDir.mkdir();
+		}
+
 		File usersFile = new File(USERS_FILE);
 		try {
 			usersFile.createNewFile();
