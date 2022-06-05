@@ -6,7 +6,6 @@ import main.algorithms.symmetric.EncryptionAlgorithm;
 import main.dtos.UserKeyInfo;
 import main.repositories.FileRepository;
 import main.repositories.Repository;
-import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.bcpg.HashAlgorithmTags;
 import org.bouncycastle.openpgp.PGPEncryptedData;
 import org.bouncycastle.openpgp.PGPException;
@@ -24,7 +23,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
@@ -125,18 +123,17 @@ public class OpenPGP {
 	public static void main(String[] args) throws Exception {
 		OpenPGP openPGP = new OpenPGP(new FileRepository());
 
-//		openPGP.generateKeyPair("andrej", "email@gmail.com", "123", KeyPairAlgorithm.DSA_1024, KeyPairAlgorithm.ElGamal1024);
+		openPGP.generateKeyPair("andrej", "email@gmail.com", "123", KeyPairAlgorithm.DSA_1024, KeyPairAlgorithm.ElGamal4096);
 //		openPGP.getUserKeys().forEach(System.out::println);
 //		openPGP.deleteKeyPair(UUID.fromString("44684ede-3545-4d09-b294-98802a073879"));
 //		openPGP.getUserKeys().forEach(System.out::println);
 
 		String message = "test";
 		UUID keyPairUuid = UUID.fromString("aeec0789-40c4-4b2e-86c2-4943bbff198e");
-		EncryptionAlgorithm encryptionAlgorithm = EncryptionAlgorithm.CAST5;
 		String password = "123";
-		byte[] encryptedBytes = openPGP.encrypt(message, keyPairUuid, encryptionAlgorithm, true, keyPairUuid, password, true);
-		System.out.println("Successfully encrypted");
-		flushToFile(encryptedBytes, "message.txt");
+		byte[] encryptedBytes = openPGP.encrypt(message, keyPairUuid, EncryptionAlgorithm.TRIPLE_DES, true, keyPairUuid, password, true);
+//		System.out.println("Successfully encrypted");
+//		flushToFile(encryptedBytes, "message.txt");
 		String decryptedString = openPGP.decrypt(encryptedBytes, password, keyPairUuid);
 		System.out.println("Successfully decrypted");
 		System.out.println(decryptedString);

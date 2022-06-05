@@ -5,6 +5,9 @@ import main.dtos.KeyType;
 import org.bouncycastle.openpgp.PGPKeyPair;
 
 import java.security.KeyPair;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 @AllArgsConstructor
 public enum KeyPairAlgorithm {
@@ -23,5 +26,13 @@ public enum KeyPairAlgorithm {
 
 	public KeyType getKeyType(){
 		return this.asymmetricStrategy.getKeyType();
+	}
+
+	public static KeyPairAlgorithm[] getSigningAlgorithms() {
+		return new KeyPairAlgorithm[]{DSA_1024, DSA_2048};
+	}
+
+	public static KeyPairAlgorithm[] getEncryptionAlgorithms() {
+		return new KeyPairAlgorithm[]{ElGamal1024, ElGamal2048, ElGamal4096};
 	}
 }

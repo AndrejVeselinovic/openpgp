@@ -3,15 +3,28 @@ package main.algorithms.asymmetric;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import main.dtos.KeyType;
+import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
+import org.bouncycastle.crypto.KeyGenerationParameters;
+import org.bouncycastle.crypto.generators.ElGamalKeyPairGenerator;
+import org.bouncycastle.crypto.params.ElGamalKeyGenerationParameters;
+import org.bouncycastle.crypto.params.ElGamalParameters;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.jce.spec.ElGamalParameterSpec;
+import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPKeyPair;
+import org.bouncycastle.openpgp.PGPPublicKey;
+import org.bouncycastle.openpgp.operator.bc.BcPGPKeyPair;
+import org.bouncycastle.openpgp.operator.jcajce.JcaPGPKeyPair;
 
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.SecureRandom;
 import java.security.Security;
+import java.util.Date;
 
 @AllArgsConstructor
 public class ElGamal4096Strategy implements AsymmetricStrategy {
@@ -28,13 +41,27 @@ public class ElGamal4096Strategy implements AsymmetricStrategy {
 	@Override
 	public PGPKeyPair generateKeyPair(int size) {
 		try {
-			KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("ELGAMAL");
-			keyPairGenerator.initialize(new ElGamalParameterSpec(P, Q));
+			KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("ELGAMAL", "BC");
+//			keyPairGenerator.initialize(new ElGamalParameterSpec(P, Q));
+			keyPairGenerator.initialize(3072);
 			KeyPair keyPair = keyPairGenerator.generateKeyPair();
-			return null;
-		} catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException e) {
+			return new JcaPGPKeyPair(PGPPublicKey.ELGAMAL_ENCRYPT, keyPair, new Date());
+		} catch (NoSuchAlgorithmException | PGPException | NoSuchProviderException e) {
 			throw new RuntimeException(e);
 		}
 	}
+
+//	@Override
+//	public PGPKeyPair generateKeyPair(int size) {
+//		ElGamalKeyPairGenerator elGamalKeyPairGenerator = new ElGamalKeyPairGenerator();
+////		elGamalKeyPairGenerator.init(new KeyGenerationParameters(new SecureRandom(), size));
+//		elGamalKeyPairGenerator.init(new ElGamalKeyGenerationParameters(new SecureRandom(), new ElGamalParameters(P, Q)));
+//		AsymmetricCipherKeyPair elgKp = elGamalKeyPairGenerator.generateKeyPair();
+//		try {
+//			return new BcPGPKeyPair(PGPPublicKey.ELGAMAL_ENCRYPT, elgKp, new Date());
+//		} catch (PGPException e) {
+//			throw new RuntimeException(e);
+//		}
+//	}
 }
 
