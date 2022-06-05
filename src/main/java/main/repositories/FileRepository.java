@@ -81,11 +81,11 @@ public class FileRepository implements Repository {
 			try (FileOutputStream usersOutput = new FileOutputStream(USERS_FILE, true)) {
 				String usersWrite = String.format("%s,%s,%s,%s,%s,%s\n",
 						userKeyInfo.getUsername(),
-						userKeyInfo.getEmail(),
 						userKeyInfo.getPassword(),
+						userKeyInfo.getEmail(),
 						userKeyInfo.getKeyId(),
-						userKeyInfo.getEncryptionKeyType(),
-						userKeyInfo.getSignatureKeyType());
+						userKeyInfo.getSignatureKeyType(),
+						userKeyInfo.getEncryptionKeyType());
 				usersOutput.write(usersWrite.getBytes());
 			}
 		} catch (IOException e) {

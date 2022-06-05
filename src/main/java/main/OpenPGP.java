@@ -123,19 +123,20 @@ public class OpenPGP {
 	public static void main(String[] args) throws Exception {
 		OpenPGP openPGP = new OpenPGP(new FileRepository());
 
-		openPGP.generateKeyPair("andrej", "email@gmail.com", "123", KeyPairAlgorithm.DSA_1024, KeyPairAlgorithm.ElGamal4096);
+		openPGP.generateKeyPair("andrej", "email@gmail.com", "123", KeyPairAlgorithm.DSA_1024, KeyPairAlgorithm.ElGamal1024);
+		openPGP.generateKeyPair("andrej", "email@gmail.com", "123", KeyPairAlgorithm.DSA_2048, KeyPairAlgorithm.ElGamal2048);
 //		openPGP.getUserKeys().forEach(System.out::println);
 //		openPGP.deleteKeyPair(UUID.fromString("44684ede-3545-4d09-b294-98802a073879"));
 //		openPGP.getUserKeys().forEach(System.out::println);
 
-		String message = "test";
-		UUID keyPairUuid = UUID.fromString("aeec0789-40c4-4b2e-86c2-4943bbff198e");
-		String password = "123";
-		byte[] encryptedBytes = openPGP.encrypt(message, keyPairUuid, EncryptionAlgorithm.TRIPLE_DES, true, keyPairUuid, password, true);
+//		String message = "test";
+//		UUID keyPairUuid = UUID.fromString("aeec0789-40c4-4b2e-86c2-4943bbff198e");
+//		String password = "123";
+//		byte[] encryptedBytes = openPGP.encrypt(message, keyPairUuid, EncryptionAlgorithm.TRIPLE_DES, false, keyPairUuid, password, false);
 //		System.out.println("Successfully encrypted");
 //		flushToFile(encryptedBytes, "message.txt");
-		String decryptedString = openPGP.decrypt(encryptedBytes, password, keyPairUuid);
-		System.out.println("Successfully decrypted");
-		System.out.println(decryptedString);
+//		String decryptedString = openPGP.decrypt(encryptedBytes, password, keyPairUuid);
+//		System.out.println("Successfully decrypted");
+//		System.out.println(decryptedString);
 	}
 }
