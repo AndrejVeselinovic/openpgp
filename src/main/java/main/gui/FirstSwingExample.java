@@ -6,9 +6,9 @@ import main.dtos.UserKeyInfo;
 import main.repositories.FileRepository;
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.table.TableColumnModel;
 import java.awt.*;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
@@ -20,19 +20,13 @@ public class FirstSwingExample {
 	private static final int LOCATION_X = 500;
 	private static final int LOCATION_Y = 300;
 
+	private static JFrame frame;
+	private static JScrollPane usersPanel;
+
 	public static void main(String[] args) {
-		JFrame frame = getMainFrame();
+		frame = getMainFrame();
 
-		Container mainPanel = frame.getContentPane();
-
-		JScrollPane usersPanel = getUsersTable(false);
-		usersPanel.setSize(WINDOW_WIDTH, (int) (WINDOW_HEIGHT * 0.7));
-		usersPanel.setPreferredSize(new Dimension(200, 100));
-		mainPanel.add(usersPanel, BorderLayout.CENTER);
-
-		JPanel buttonsPanel = getButtonsPanel();
-		buttonsPanel.setSize(WINDOW_WIDTH, (int) (WINDOW_HEIGHT * 0.3));
-		mainPanel.add(buttonsPanel, BorderLayout.NORTH);
+		refreshMainPanel();
 
 		frame.setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
 		frame.setLocation(LOCATION_X, LOCATION_Y);
@@ -61,6 +55,7 @@ public class FirstSwingExample {
 //		generateKeyPairButton.setSize(new Dimension(200, 50));
 		buttonPanel.add(generateKeyPairButton);
 		buttonPanel.add(getEncryptMessageButton());
+		buttonPanel.add(getDecryptMessageButton());
 		return buttonPanel;
 	}
 
@@ -80,15 +75,51 @@ public class FirstSwingExample {
 		JList<KeyPairAlgorithm> encryptionAlgorithms = new JList<>(KeyPairAlgorithm.getEncryptionAlgorithms());
 		panel.add(encryptionAlgorithms);
 
-
 		dialog.add(panel);
 		dialog.setSize((int) (WINDOW_WIDTH * 0.6), (int) (WINDOW_HEIGHT * 0.6));
 		dialog.setLocation((int) (LOCATION_X * 1.2), (int) (LOCATION_Y * 1.2));
+
+		JPanel buttonPanel = new JPanel();
+
+		buttonPanel.add(getGenerateKeyPairDialogButton());
+
+		dialog.add(buttonPanel, BorderLayout.SOUTH);
 		return dialog;
+	}
+
+	private static JButton getGenerateKeyPairDialogButton(){
+		JButton generateButton = new JButton("Generate");
+
+		generateButton.addActionListener(e -> refreshMainPanel());
+		return generateButton;
+	}
+
+	private static void refreshMainPanel() {
+		Container mainPanel = frame.getContentPane();
+
+		if (usersPanel != null) {
+			usersPanel.removeAll();
+			mainPanel.remove(usersPanel);
+		}
+
+		usersPanel = getUsersTable(false);
+		mainPanel.add(usersPanel, BorderLayout.CENTER);
+
+		JPanel buttonsPanel = getButtonsPanel();
+		buttonsPanel.setSize(WINDOW_WIDTH, (int) (WINDOW_HEIGHT * 0.3));
+		mainPanel.add(buttonsPanel, BorderLayout.NORTH);
+
+		frame.revalidate();
+		frame.repaint();
+		System.out.println("refreshed");
 	}
 
 	private static JButton getEncryptMessageButton() {
 		return new JButton("Encrypt");
+	}
+
+	private static JButton getDecryptMessageButton(){
+		return new JButton("Decrypt");
 	}
 
 	private static JScrollPane getUsersTable(boolean clickable) {
