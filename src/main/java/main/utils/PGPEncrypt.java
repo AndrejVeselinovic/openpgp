@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.security.SecureRandom;
+import java.util.Collection;
 import java.util.Date;
 
 import org.bouncycastle.bcpg.ArmoredOutputStream;
@@ -15,6 +16,7 @@ import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPLiteralData;
 import org.bouncycastle.openpgp.PGPLiteralDataGenerator;
 import org.bouncycastle.openpgp.PGPPublicKey;
+import org.bouncycastle.openpgp.operator.bc.BcPublicKeyKeyEncryptionMethodGenerator;
 import org.bouncycastle.openpgp.operator.jcajce.JcePGPDataEncryptorBuilder;
 import org.bouncycastle.openpgp.operator.jcajce.JcePublicKeyKeyEncryptionMethodGenerator;
 
@@ -23,14 +25,14 @@ public class PGPEncrypt {
 		throw new IllegalAccessError("Utility class");
 	}
 
-	public static byte[] encrypt(byte[] data, PGPPublicKey publicKey, int algorithmTag, boolean shouldCompress) throws IOException, PGPException {
+	public static byte[] encrypt(byte[] data, Collection<PGPPublicKey> publicKeys, int algorithmTag, boolean shouldCompress) throws IOException, PGPException {
 		byte[] compressedData = compress(data, shouldCompress);
 
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
 		ArmoredOutputStream aos = new ArmoredOutputStream(bos);
 
-		OutputStream encOut = getEncryptedGenerator(publicKey, algorithmTag).open(aos, compressedData.length);
+		OutputStream encOut = getEncryptedGenerator(publicKeys, algorithmTag).open(aos, compressedData.length);
 
 		encOut.write(compressedData);
 
@@ -41,13 +43,14 @@ public class PGPEncrypt {
 		return bos.toByteArray();
 	}
 
-	private static PGPEncryptedDataGenerator getEncryptedGenerator(PGPPublicKey publicKey, int algorithmTag) {
+	private static PGPEncryptedDataGenerator getEncryptedGenerator(Collection<PGPPublicKey> publicKeys, int algorithmTag) {
 		PGPEncryptedDataGenerator encGen = new PGPEncryptedDataGenerator(
 				new JcePGPDataEncryptorBuilder(algorithmTag).setWithIntegrityPacket(true)
 						.setSecureRandom(new SecureRandom())
 						.setProvider("BC"));
-
-		encGen.addMethod(new JcePublicKeyKeyEncryptionMethodGenerator(publicKey).setProvider("BC"));
+		for(PGPPublicKey publicKey: publicKeys){
+			encGen.addMethod(new BcPublicKeyKeyEncryptionMethodGenerator(publicKey));
+		}
 
 		return encGen;
 	}

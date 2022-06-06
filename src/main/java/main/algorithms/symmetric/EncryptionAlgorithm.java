@@ -13,27 +13,27 @@ import org.apache.commons.codec.binary.Base64;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPPrivateKey;
+import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.PGPSecretKey;
 import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyDecryptorBuilder;
 import org.bouncycastle.util.Arrays;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.security.KeyException;
+import java.util.Collection;
 import java.util.UUID;
-
+import java.util.stream.Collectors;
 
 @AllArgsConstructor
 public enum EncryptionAlgorithm {
-	TRIPLE_DES(new TripleDes()),
-	CAST5(new Cast5());
+	TRIPLE_DES(new TripleDes()), CAST5(new Cast5());
 
 	private static final String SIGNATURE_TAG = "*signed*";
 	private static final int UUID_LENGTH = 36;
 
-
 	private final SymmetricEncryptionStrategy symmetricEncryptionStrategy;
 	private static final Repository repository = new FileRepository();
-
 
 	private static PGPPrivateKey fromPGPSecretKey(PGPSecretKey secretKey, String password) {
 		try {
@@ -45,11 +45,12 @@ public enum EncryptionAlgorithm {
 		}
 	}
 
-	public byte[] encryptMessage(String message, UUID keyId, boolean shouldCompress, UUID keyToSignMessageWith, String signingKeyPassword, boolean shouldEncode)
+	public byte[] encryptMessage(String message, Collection<UUID> keyIds, boolean shouldCompress,
+			UUID keyToSignMessageWith, String signingKeyPassword, boolean shouldEncode)
 			throws IOException, PGPException, GeneralSecurityException {
-		PGPPrivateKey pgpPrivateKey;
-		PublicKeyInfo publicEncryptionKeyInfo = repository.getPublicEncryptionKey(keyId);
 		byte[] bytesToEncrypt = message.getBytes();
+
+		PGPPrivateKey pgpPrivateKey;
 		if (keyToSignMessageWith != null) {
 			SecretKeyInfo secretSigningKeyInfo = repository.getSecretSigningKey(keyToSignMessageWith);
 			pgpPrivateKey = fromPGPSecretKey(secretSigningKeyInfo.getSecretKey(), signingKeyPassword);
@@ -57,9 +58,15 @@ public enum EncryptionAlgorithm {
 			bytesToEncrypt = Arrays.concatenate(keyToSignMessageWith.toString().getBytes(), bytesToEncrypt);
 			bytesToEncrypt = Arrays.concatenate(SIGNATURE_TAG.getBytes(), bytesToEncrypt);
 		}
+
 		int algorithmTag = this.symmetricEncryptionStrategy.getSymmetricKeyAlgorithmTag();
-		bytesToEncrypt = PGPEncrypt.encrypt(bytesToEncrypt, publicEncryptionKeyInfo.getPublicKey(), algorithmTag, shouldCompress);
-		if(shouldEncode){
+		Collection<PGPPublicKey> publicKeyInfoCollection = keyIds.stream()
+				.map(repository::getPublicEncryptionKey)
+				.map(PublicKeyInfo::getPublicKey)
+				.collect(Collectors.toList());
+		bytesToEncrypt = PGPEncrypt.encrypt(bytesToEncrypt, publicKeyInfoCollection, algorithmTag,
+				shouldCompress);
+		if (shouldEncode) {
 			bytesToEncrypt = Base64.encodeBase64(bytesToEncrypt);
 		}
 		return bytesToEncrypt;
@@ -68,7 +75,7 @@ public enum EncryptionAlgorithm {
 	public static String decryptMessage(byte[] encryptedData, String password, UUID keyId)
 			throws PGPException, IOException {
 		boolean shouldDecode = Base64.isBase64(encryptedData);
-		if(shouldDecode) {
+		if (shouldDecode) {
 			encryptedData = Base64.decodeBase64(encryptedData);
 		}
 		SecretKeyInfo secretKeyInfo = repository.getSecretEncryptionKey(keyId);
@@ -77,9 +84,9 @@ public enum EncryptionAlgorithm {
 
 		byte[] decrypt = PGPDecrypt.decrypt(encryptedData, pgpPrivateKey);
 		int tagSize = UUID_LENGTH + SIGNATURE_TAG.getBytes().length;
-		if(decrypt.length > tagSize) {
+		if (decrypt.length > tagSize) {
 			byte[] signatureTag = Arrays.copyOfRange(decrypt, 0, SIGNATURE_TAG.getBytes().length);
-			if(new String(signatureTag).equals(SIGNATURE_TAG)) {
+			if (new String(signatureTag).equals(SIGNATURE_TAG)) {
 				byte[] uuidBytes = Arrays.copyOfRange(decrypt, SIGNATURE_TAG.getBytes().length, tagSize);
 				UUID signingKey = UUID.fromString(new String(uuidBytes));
 				PublicKeyInfo publicSigningKey = repository.getPublicSigningKey(signingKey);
