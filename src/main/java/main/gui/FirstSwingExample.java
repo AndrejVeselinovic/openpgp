@@ -12,6 +12,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 import static javax.swing.JOptionPane.showMessageDialog;
 
@@ -53,12 +54,78 @@ public class FirstSwingExample {
 
 	private static JPanel getButtonsPanel() {
 		JPanel buttonPanel = new JPanel();
-		JButton generateKeyPairButton = getGenerateKeyPairButton();
-//		generateKeyPairButton.setSize(new Dimension(200, 50));
-		buttonPanel.add(generateKeyPairButton);
+
+		buttonPanel.add(getGenerateKeyPairButton());
+		buttonPanel.add(getDeletePrivateKeyButton());
 		buttonPanel.add(getEncryptMessageButton());
 		buttonPanel.add(getDecryptMessageButton());
+		buttonPanel.add(getImportButton());
+		buttonPanel.add(getExportButton());
 		return buttonPanel;
+	}
+
+	private static JButton getExportButton() {
+		JButton exportButton = new JButton("Export");
+		JDialog dialog = getGenerateKeyPairDialog();
+		exportButton.addActionListener(event -> dialog.setVisible(true));
+		return exportButton;
+	}
+
+	private static JButton getImportButton() {
+		JButton importButton = new JButton("Import");
+		JDialog dialog = getDeletePrivateKeyDialog();
+		importButton.addActionListener(event -> dialog.setVisible(true));
+		return importButton;
+	}
+
+	private static JButton getDeletePrivateKeyButton() {
+		JButton deletePrivateKeyButton = new JButton("Delete Private Key");
+		JDialog dialog = getDeletePrivateKeyDialog();
+		deletePrivateKeyButton.addActionListener(event -> dialog.setVisible(true));
+		return deletePrivateKeyButton;
+	}
+
+	private static JDialog getDeletePrivateKeyDialog() {
+		JDialog dialog = new JDialog();
+		JPanel panel = new JPanel();
+
+		JTextField passwordTextField = new JTextField(20);
+		panel.add(passwordTextField);
+
+		JPanel buttonPanel = new JPanel();
+		JButton submitDeleteButton = new JButton("Submit");
+		buttonPanel.add(submitDeleteButton);
+
+		submitDeleteButton.addActionListener(e -> {
+			JViewport viewport = usersPanel.getViewport();
+			JTable table = (JTable)viewport.getView();
+
+			int selectedRow = table.getSelectedRow();
+			if (selectedRow == -1){
+				showMessageDialog(null, "Select row to delete");
+				return;
+			}
+
+			String keyId = (String) table.getModel().getValueAt(selectedRow, 4);
+			String password = (String) table.getModel().getValueAt(selectedRow, 5);
+
+			if (!password.equals(passwordTextField.getText())){
+				showMessageDialog(null, "Wrong password!");
+				return;
+			}
+
+			OPENPGP_CLIENT.deleteKeyPair(UUID.fromString(keyId));
+
+			refreshMainPanel();
+		});
+
+		dialog.add(buttonPanel, BorderLayout.SOUTH);
+
+		dialog.add(panel);
+		dialog.setSize((int) (WINDOW_WIDTH * 0.4), (int) (WINDOW_HEIGHT * 0.4));
+		dialog.setLocation((int) (LOCATION_X * 1.4), (int) (LOCATION_Y * 1.2));
+
+		return dialog;
 	}
 
 	private static JButton getGenerateKeyPairButton() {
@@ -180,7 +247,7 @@ public class FirstSwingExample {
 	}
 
 	private static JScrollPane getUsersTable(boolean clickable) {
-		String[] columnNames = new String[]{"Name", "Email", "Signing Key Type", "Encryption Key Type", "ID"};
+		String[] columnNames = new String[]{"Name", "Email", "Signing Key Type", "Encryption Key Type", "ID", "Password"};
 		List<UserKeyInfo> userKeys = OPENPGP_CLIENT.getUserKeys();
 		String[][] data = new String[userKeys.size()][columnNames.length];
 		for (int i = 0; i < userKeys.size(); i++) {
@@ -190,6 +257,7 @@ public class FirstSwingExample {
 			data[i][2] = currentUserKey.getSignatureKeyType().name();
 			data[i][3] = currentUserKey.getEncryptionKeyType().name();
 			data[i][4] = currentUserKey.getKeyId().toString();
+			data[i][5] = currentUserKey.getPassword();
 		}
 
 		JTable table = new JTable(data, columnNames) {
@@ -200,6 +268,7 @@ public class FirstSwingExample {
 		};
 		TableColumnModel columnModel = table.getColumnModel();
 		columnModel.removeColumn(columnModel.getColumn(columnNames.length - 1));
+		columnModel.removeColumn(columnModel.getColumn(columnNames.length - 2));
 
 		table.addMouseListener(new MouseAdapter() {
 			public void mousePressed(MouseEvent mouseEvent) {
