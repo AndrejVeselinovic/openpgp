@@ -6,10 +6,13 @@ import main.dtos.UserKeyInfo;
 import main.repositories.FileRepository;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.TableColumnModel;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.File;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -22,6 +25,8 @@ public class FirstSwingExample {
 	private static final int WINDOW_WIDTH = 800;
 	private static final int LOCATION_X = 500;
 	private static final int LOCATION_Y = 300;
+
+	private static final String PATH_TO_KEYS_DIR = "D:/Nedim/ZP/openpgp/keys";
 
 	private static JFrame frame;
 	private static JScrollPane usersPanel;
@@ -201,10 +206,10 @@ public class FirstSwingExample {
 		generateButton.addActionListener(e -> {
 			if (
 					Objects.equals(usernameTextField.getText(), "")
-					|| Objects.equals(emailTextField.getText(), "")
-					|| Objects.equals(passwordPKTextField.getText(), "")
-					|| encryptionAlgorithms.getSelectedItem() == null
-					|| signingAlgorithms.getSelectedItem() == null)
+							|| Objects.equals(emailTextField.getText(), "")
+							|| Objects.equals(passwordPKTextField.getText(), "")
+							|| encryptionAlgorithms.getSelectedItem() == null
+							|| signingAlgorithms.getSelectedItem() == null)
 			{
 				showMessageDialog(null, "All fields should be filled!");
 			}
@@ -239,7 +244,128 @@ public class FirstSwingExample {
 	}
 
 	private static JButton getEncryptMessageButton() {
-		return new JButton("Encrypt");
+		JButton encryptButton = new JButton("Encrypt");
+		JDialog dialog = getGenerateEncryptDialog();
+		encryptButton.addActionListener(event -> dialog.setVisible(true));
+		return encryptButton;
+	}
+
+	private static JDialog getGenerateEncryptDialog() {
+		JDialog dialog = new JDialog();
+		dialog.setTitle("Encrypt message");
+
+		JPanel panel = new JPanel();
+		panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+
+		JPanel messageTextAreaPanel = new JPanel();
+		JTextArea messageTextArea = new JTextArea(40, 40);
+		messageTextAreaPanel.add(messageTextArea);
+		panel.add(messageTextAreaPanel);
+
+		JPanel encryptPanel = new JPanel();
+		JTextField encryptTextField = new JTextField(30);
+		encryptTextField.setEditable(false);
+		JButton providePrivacyButton= new JButton("Encryption");
+		encryptPanel.add(providePrivacyButton);
+		encryptPanel.add(encryptTextField);
+
+		providePrivacyButton.addActionListener(e -> {
+			JFileChooser chooser = new JFileChooser(PATH_TO_KEYS_DIR);
+			if (chooser.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
+				File selectedFile = chooser.getSelectedFile();
+				if(!selectedFile.getName().endsWith(".pub.asc")){
+					showMessageDialog(null, "Choose public key!");
+					return;
+				}
+				encryptTextField.setText(selectedFile.getName());
+			}
+		});
+		panel.add(encryptPanel);
+
+
+		JPanel authPanel = new JPanel();
+		JTextField signAuthTextField = new JTextField(30);
+		signAuthTextField.setEditable(false);
+		JButton signAuthButton = new JButton("Authentication");
+		authPanel.add(signAuthButton);
+		authPanel.add(signAuthTextField);
+		panel.add(authPanel);
+
+		JPanel passwordPKPanel = new JPanel();
+		JLabel passwordLabel = new JLabel("Password");
+		passwordPKPanel.add(passwordLabel);
+		JTextField passwordTextField = new JTextField(20);
+		passwordPKPanel.add(passwordTextField);
+		panel.add(passwordPKPanel);
+
+		signAuthButton.addActionListener(e -> {
+			JFileChooser chooser = new JFileChooser(PATH_TO_KEYS_DIR);
+			if (chooser.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
+				File selectedFile = chooser.getSelectedFile();
+				if(!selectedFile.getName().endsWith(".priv.asc")){
+					showMessageDialog(null, "Choose private key!");
+					return;
+				}
+				UUID keyId = UUID.fromString(
+						selectedFile.getName().split("\\.")[0]);
+				if(!passwordTextField.getText().equals(OPENPGP_CLIENT.getPasswordForKeyId(keyId))){
+					showMessageDialog(null, "Wrong password for chosen private key!");
+					return;
+				}
+
+				signAuthTextField.setText(selectedFile.getName());
+			}
+		});
+
+
+		JPanel signignAlgorithmPanel = new JPanel();
+		JLabel signingAlhoritmLabel = new JLabel("Signing algorithm: ");
+		signignAlgorithmPanel.add(signingAlhoritmLabel);
+		JComboBox<KeyPairAlgorithm> signingAlgorithms = new JComboBox<>(KeyPairAlgorithm.getSigningAlgorithms());
+		signignAlgorithmPanel.add(signingAlgorithms);
+		panel.add(signignAlgorithmPanel);
+
+		JPanel encryptAlgorithmPanel = new JPanel();
+		JLabel encryptAlgorithmLabel = new JLabel("Encryption algorithm: ");
+		encryptAlgorithmPanel.add(encryptAlgorithmLabel);
+		JComboBox<KeyPairAlgorithm> encryptAlgorithms = new JComboBox<>(KeyPairAlgorithm.getEncryptionAlgorithms());
+		encryptAlgorithmPanel.add(encryptAlgorithms);
+		panel.add(encryptAlgorithmPanel);
+
+
+		JPanel checkBoxPanel = new JPanel();
+		JCheckBox compressCheckBox = new JCheckBox("Compress");
+		checkBoxPanel.add(compressCheckBox);
+
+		JCheckBox radix64CheckBox = new JCheckBox("Radix64");
+		checkBoxPanel.add(radix64CheckBox);
+		panel.add(checkBoxPanel);
+
+		JButton submitButton = new JButton("Submit");
+//		submitButton.addActionListener(e -> {
+//			String message = messageTextArea.getText();
+//			if (message == null || message.equals("")){
+//				showMessageDialog(null, "Message is empty! Nothing to encrypt.");
+//				return;
+//			}
+//
+//			boolean shouldCompress = compressCheckBox.isSelected();
+//			boolean shouldEncode = radix64CheckBox.isSelected();
+//			UUID publicKeyUUID = UUID.fromString(encryptTextField.getText().split("\\.")[0]);
+//			UUID privateKeyUUID = UUID.fromString(signAuthTextField.getText().split("\\.")[0]);
+//			KeyPairAlgorithm encryptionAlgorithm = (KeyPairAlgorithm) encryptAlgorithms.getSelectedItem();
+//			KeyPairAlgorithm signingAlgorithm = (KeyPairAlgorithm) signingAlgorithms.getSelectedItem();
+//
+//			OPENPGP_CLIENT.encrypt(message, publicKeyUUID, encryptionAlgorithm.getAsymmetricStrategy(), shouldCompress,
+//					privateKeyUUID, );
+//		});
+		panel.add(submitButton);
+
+		dialog.add(panel);
+		dialog.setSize((int) (WINDOW_WIDTH * 0.8), (int) (WINDOW_HEIGHT * 0.7));
+		dialog.setLocation((int) (LOCATION_X * 1.4), (int) (LOCATION_Y * 1.2));
+
+		return dialog;
 	}
 
 	private static JButton getDecryptMessageButton(){
@@ -286,4 +412,4 @@ public class FirstSwingExample {
 		return new JScrollPane(table, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
 				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 	}
-} 
+}

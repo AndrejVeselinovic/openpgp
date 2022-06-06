@@ -72,6 +72,11 @@ public class OpenPGP {
 		PGPPublicKey encryptionKey = iterator.next();
 	}
 
+
+	public String getPasswordForKeyId(UUID keyId){
+		return repository.getPasswordForKeyId(keyId);
+	}
+
 	public List<UserKeyInfo> getUserKeys() {
 		return repository.getUsers();
 	}
@@ -109,6 +114,7 @@ public class OpenPGP {
 		flushToFile(bytes, "test.txt");
 	}
 
+
 	public static void flushToFile(byte[] bytes, String filename) {
 		try {
 //			ArmoredOutputStream armoredOutputStream = new ArmoredOutputStream(new FileOutputStream(filename));
@@ -131,15 +137,17 @@ public class OpenPGP {
 //		openPGP.deleteKeyPair(UUID.fromString("44684ede-3545-4d09-b294-98802a073879"));
 //		openPGP.getUserKeys().forEach(System.out::println);
 
-		String message = "test";
-		UUID keyPairUuid = UUID.fromString("48e95003-e886-4345-934c-d0cbb318411a");
-		UUID keyPairUuid2 = UUID.fromString("7186e147-74ae-4b77-950f-e1050ab46270");
-		String password = "123";
-		byte[] encryptedBytes = openPGP.encrypt(message, List.of(new UUID[] {keyPairUuid}), EncryptionAlgorithm.TRIPLE_DES, false, null, password, false);
-		System.out.println("Successfully encrypted");
-		flushToFile(encryptedBytes, "message.txt");
-		String decryptedString = openPGP.decrypt(encryptedBytes, password, keyPairUuid);
-		System.out.println("Successfully decrypted");
-		System.out.println(decryptedString);
+//		String message = "test";
+//		UUID keyPairUuid = UUID.fromString("48e95003-e886-4345-934c-d0cbb318411a");
+//		UUID keyPairUuid2 = UUID.fromString("7186e147-74ae-4b77-950f-e1050ab46270");
+//		String password = "123";
+//		byte[] encryptedBytes = openPGP.encrypt(message, List.of(new UUID[] {keyPairUuid}), EncryptionAlgorithm.TRIPLE_DES, false, null, password, false);
+//		System.out.println("Successfully encrypted");
+//		flushToFile(encryptedBytes, "message.txt");
+//		String decryptedString = openPGP.decrypt(encryptedBytes, password, keyPairUuid);
+//		System.out.println("Successfully decrypted");
+//		System.out.println(decryptedString);
+		System.out.println(openPGP.repository.getPasswordForKeyId(
+				UUID.fromString("adaaa6fc-d1ea-46da-9a7c-145dd9c48731")));
 	}
 }

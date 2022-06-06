@@ -1,6 +1,7 @@
 package main.algorithms.asymmetric;
 
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import main.dtos.KeyType;
 import org.bouncycastle.openpgp.PGPKeyPair;
 
@@ -18,6 +19,7 @@ public enum KeyPairAlgorithm {
 	ElGamal4096(4096, new ElGamal4096Strategy(KeyType.ElGamal4096));
 
 	private final int size;
+	@Getter
 	private final AsymmetricStrategy asymmetricStrategy;
 
 	public PGPKeyPair generateKeyPair() {

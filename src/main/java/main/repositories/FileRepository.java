@@ -23,8 +23,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class FileRepository implements Repository {
 	private static final String KEY_RING_DIRECTORY = "keys/";
@@ -119,6 +121,7 @@ public class FileRepository implements Repository {
 		File privateKeyFile = new File(getPrivateKeyFilePath(keyId));
 		privateKeyFile.getParentFile().canWrite();
 		File publicKeyFile = new File(getPublicKeyFilePath(keyId));
+
 		if (!privateKeyFile.delete()) {
 			throw new RuntimeException("Error deleting private key file for key " + keyId);
 		}
@@ -243,6 +246,18 @@ public class FileRepository implements Repository {
 	@Override
 	public PublicKeyInfo getPublicSigningKey(UUID keyId) {
 		return getPublicKey(keyId, 1);
+	}
+
+	@Override
+	public String getPasswordForKeyId(UUID keyId) {
+		List<UserKeyInfo> users = getUsers();
+		Optional<UserKeyInfo> userOptional = users.stream()
+				.filter(userKeyInfo -> userKeyInfo.getKeyId().equals(keyId)).findAny();
+
+		if (userOptional.isEmpty())
+			return null;
+
+		return userOptional.get().getPassword();
 	}
 
 	@Override

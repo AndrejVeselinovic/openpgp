@@ -29,5 +29,7 @@ public interface Repository {
 
 	PublicKeyInfo getPublicSigningKey(UUID keyId);
 
+	String getPasswordForKeyId(UUID keyId);
+
 	byte[] retrievePublicKey(UUID keyId);
 }
