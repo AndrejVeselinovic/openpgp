@@ -62,17 +62,6 @@ public class OpenPGP {
 		repository.persistUserKeyInfo(userKeyInfo);
 	}
 
-	public void readPublicKeyFromFile(String path) throws IOException {
-		FileInputStream fileInputStream = new FileInputStream(path);
-		byte[] bytes = fileInputStream.readAllBytes();
-		fileInputStream.close();
-		JcaPGPPublicKeyRing pgpPublicKeys = new JcaPGPPublicKeyRing(bytes);
-		Iterator<PGPPublicKey> iterator = pgpPublicKeys.iterator();
-		PGPPublicKey signingKey = iterator.next();
-		PGPPublicKey encryptionKey = iterator.next();
-	}
-
-
 	public String getPasswordForKeyId(UUID keyId){
 		return repository.getPasswordForKeyId(keyId);
 	}
