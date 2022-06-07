@@ -13,19 +13,10 @@ import org.bouncycastle.openpgp.PGPSecretKey;
 import org.bouncycastle.openpgp.jcajce.JcaPGPPublicKeyRing;
 import org.bouncycastle.openpgp.jcajce.JcaPGPSecretKeyRing;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.nio.file.Path;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -38,16 +29,9 @@ public class FileRepository implements Repository {
 	private static final String SESSIONS_DIRECTORY = "sessions/";
 
 	static {
-		File keyRingDir = new File(KEY_RING_DIRECTORY);
-		if (!keyRingDir.exists()){
-			keyRingDir.mkdir();
-		}
-
-		File usersFile = new File(USERS_FILE);
-		try {
-			usersFile.createNewFile();
+		try (FileWriter ignored = new FileWriter(USERS_FILE, true)) {
 		} catch (IOException e) {
-			throw new RuntimeException(e);
+			e.printStackTrace();
 		}
 	}
 
@@ -62,13 +46,9 @@ public class FileRepository implements Repository {
 	@Override
 	public UUID persistKeyPair(PGPKeyRingGenerator keyRingGenerator) {
 		UUID keyId = UUID.randomUUID();
-		File privateKeyFile = new File(getPrivateKeyFilePath(keyId));
-		File publicKeyFile = new File(getPublicKeyFilePath(keyId));
 		try {
-			privateKeyFile.createNewFile();
-			publicKeyFile.createNewFile();
-			try (ArmoredOutputStream privateOutput = new ArmoredOutputStream(new FileOutputStream(privateKeyFile));
-					ArmoredOutputStream publicOutput = new ArmoredOutputStream(new FileOutputStream(publicKeyFile))) {
+			try (ArmoredOutputStream privateOutput = new ArmoredOutputStream(new FileOutputStream(getPrivateKeyFilePath(keyId)));
+				 ArmoredOutputStream publicOutput = new ArmoredOutputStream(new FileOutputStream(getPublicKeyFilePath(keyId)))) {
 				keyRingGenerator.generatePublicKeyRing().encode(publicOutput);
 				keyRingGenerator.generateSecretKeyRing().encode(privateOutput);
 			}
@@ -119,15 +99,11 @@ public class FileRepository implements Repository {
 
 	@Override
 	public void deleteKeyPair(UUID keyId) {
-		File privateKeyFile = new File(getPrivateKeyFilePath(keyId));
-		File publicKeyFile = new File(getPublicKeyFilePath(keyId));
-
-		if (!privateKeyFile.delete()) {
-			throw new RuntimeException("Error deleting private key file for key " + keyId);
-		}
-
-		if (!publicKeyFile.delete()) {
-			throw new RuntimeException("Error deleting public key file for key " + keyId);
+		try {
+			Files.delete(Path.of(getPrivateKeyFilePath(keyId)));
+			Files.delete(Path.of(getPublicKeyFilePath(keyId)));
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 
 		deleteKeyRecord(keyId);
@@ -208,7 +184,6 @@ public class FileRepository implements Repository {
 
 		try (ArmoredInputStream fileInputStream = new ArmoredInputStream(new FileInputStream(getPrivateKeyFilePath(keyId)))) {
 			bytes = fileInputStream.readAllBytes();
-			fileInputStream.close();
 			JcaPGPSecretKeyRing secretKeys = new JcaPGPSecretKeyRing(bytes);
 			Iterator<PGPSecretKey> iterator = secretKeys.iterator();
 			encryptionKey = iterator.next(); //signing key
@@ -326,9 +301,8 @@ public class FileRepository implements Repository {
 	}
 
 	private void deleteKeyRecord(UUID keyId) {
-		String tempFileName = USERS_FILE + ".tmp";
-		try (BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE));
-				BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(tempFileName))) {
+		List<String> lines = new ArrayList<>();
+		try (BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE))) {
 			while (true) {
 				String line = bufferedReader.readLine();
 				if (line == null) {
@@ -338,16 +312,28 @@ public class FileRepository implements Repository {
 				if (userInfo.getKeyId().equals(keyId)) {
 					continue;
 				}
-				bufferedWriter.write(line);
+
+				lines.add(line);
 			}
 
-			File initialUsersFile = new File(USERS_FILE);
-			initialUsersFile.delete();
-			File newUsersFile = new File(tempFileName);
-			newUsersFile.renameTo(initialUsersFile);
+//
+//			File newUsersFile = new File(tempFileName);
+//			newUsersFile.renameTo(initialUsersFile);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+
+		try {
+			Files.delete(Path.of(USERS_FILE));
+			BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(USERS_FILE));
+			for (String line: lines)
+				bufferedWriter.write(line);
+
+			bufferedWriter.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
 	}
 
 	private UserKeyInfo fromLine(String line) {
