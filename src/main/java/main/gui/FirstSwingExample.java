@@ -2,20 +2,25 @@ package main.gui;
 
 import main.OpenPGP;
 import main.algorithms.asymmetric.KeyPairAlgorithm;
+import main.algorithms.symmetric.EncryptionAlgorithm;
 import main.dtos.UserKeyInfo;
 import main.repositories.FileRepository;
 
 import javax.swing.*;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.TableColumnModel;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import static javax.swing.JOptionPane.showMessageDialog;
 
@@ -28,9 +33,29 @@ public class FirstSwingExample {
 
 	private static final String PATH_TO_KEYS_DIR = "D:/Nedim/ZP/openpgp/keys";
 
+
+	private static final String[] columnNames = new String[]{"Name", "Email", "Signing Key Type", "Encryption Key Type", "ID", "Password"};
+	private static final int IdColumnIndex = columnNames.length - 2;
+	private static final String[][] data;
+	private static final AtomicReference<Collection<UUID>> publicKeysForEncryption = new AtomicReference<>();
+	private static final AtomicReference<UUID> privateKey = new AtomicReference<>();
+	private static final AtomicReference<String> privateKeyPassword = new AtomicReference<>();
 	private static JFrame frame;
 	private static JScrollPane usersPanel;
 
+	static {
+		List<UserKeyInfo> userKeys = OPENPGP_CLIENT.getUserKeys();
+		data = new String[userKeys.size()][columnNames.length];
+		for (int i = 0; i < userKeys.size(); i++) {
+			UserKeyInfo currentUserKey = userKeys.get(i);
+			data[i][0] = currentUserKey.getUsername();
+			data[i][1] = currentUserKey.getEmail();
+			data[i][2] = currentUserKey.getSignatureKeyType().name();
+			data[i][3] = currentUserKey.getEncryptionKeyType().name();
+			data[i][4] = currentUserKey.getKeyId().toString();
+			data[i][5] = currentUserKey.getPassword();
+		}
+	}
 	public static void main(String[] args) {
 		frame = getMainFrame();
 
@@ -46,12 +71,7 @@ public class FirstSwingExample {
 		frame.addWindowListener(new java.awt.event.WindowAdapter() {
 			@Override
 			public void windowClosing(java.awt.event.WindowEvent windowEvent) {
-				if (JOptionPane.showConfirmDialog(frame,
-						"Are you sure you want to close this window?", "Close Window?",
-						JOptionPane.YES_NO_OPTION,
-						JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION){
-					System.exit(0);
-				}
+				System.exit(0);
 			}
 		});
 		return frame;
@@ -164,11 +184,11 @@ public class FirstSwingExample {
 		signingAlgPanel.add(signingAlLabel);
 		signingAlgPanel.add(signingAlgorithms);
 
-		JPanel ecnryptAlgPanel = new JPanel();
+		JPanel encryptAlgPanel = new JPanel();
 		JLabel encryptAlLabel = new JLabel("Encryption algorithm");
 		JComboBox<KeyPairAlgorithm> encryptionAlgorithms = new JComboBox<>(KeyPairAlgorithm.getEncryptionAlgorithms());
-		ecnryptAlgPanel.add(encryptAlLabel);
-		ecnryptAlgPanel.add(encryptionAlgorithms);
+		encryptAlgPanel.add(encryptAlLabel);
+		encryptAlgPanel.add(encryptionAlgorithms);
 
 
 		JPanel passwordPKPanel = new JPanel();
@@ -180,7 +200,7 @@ public class FirstSwingExample {
 		panel.add(emailPanel);
 		panel.add(usernamePanel);
 		panel.add(signingAlgPanel);
-		panel.add(ecnryptAlgPanel);
+		panel.add(encryptAlgPanel);
 		panel.add(passwordPKPanel);
 
 		dialog.add(panel);
@@ -190,7 +210,7 @@ public class FirstSwingExample {
 		JPanel buttonPanel = new JPanel();
 
 		buttonPanel.add(getGenerateKeyPairDialogButton(usernameTextField, emailTextField, passwordPKTextField,
-				encryptionAlgorithms, signingAlgorithms));
+				encryptionAlgorithms, signingAlgorithms, dialog));
 
 		dialog.add(buttonPanel, BorderLayout.SOUTH);
 		return dialog;
@@ -200,7 +220,8 @@ public class FirstSwingExample {
 														  JTextField emailTextField,
 														  JTextField passwordPKTextField,
 														  JComboBox<KeyPairAlgorithm> encryptionAlgorithms,
-														  JComboBox<KeyPairAlgorithm> signingAlgorithms){
+														  JComboBox<KeyPairAlgorithm> signingAlgorithms,
+			JDialog dialog){
 		JButton generateButton = new JButton("Generate");
 
 		generateButton.addActionListener(e -> {
@@ -211,7 +232,7 @@ public class FirstSwingExample {
 							|| encryptionAlgorithms.getSelectedItem() == null
 							|| signingAlgorithms.getSelectedItem() == null)
 			{
-				showMessageDialog(null, "All fields should be filled!");
+				showMessageDialog(dialog, "All fields should be filled!");
 			}
 			else{
 				OPENPGP_CLIENT.generateKeyPair(usernameTextField.getText(), emailTextField.getText(),
@@ -263,75 +284,25 @@ public class FirstSwingExample {
 		panel.add(messageTextAreaPanel);
 
 		JPanel encryptPanel = new JPanel();
-		JTextField encryptTextField = new JTextField(30);
-		encryptTextField.setEditable(false);
-		JButton providePrivacyButton= new JButton("Encryption");
-		encryptPanel.add(providePrivacyButton);
-		encryptPanel.add(encryptTextField);
 
-		providePrivacyButton.addActionListener(e -> {
-			JFileChooser chooser = new JFileChooser(PATH_TO_KEYS_DIR);
-			if (chooser.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
-				File selectedFile = chooser.getSelectedFile();
-				if(!selectedFile.getName().endsWith(".pub.asc")){
-					showMessageDialog(null, "Choose public key!");
-					return;
-				}
-				encryptTextField.setText(selectedFile.getName());
-			}
-		});
+		JButton providePrivacyButton= new JButton("Select Public Keys");
+		encryptPanel.add(providePrivacyButton);
+		providePrivacyButton.addActionListener(event -> new Thread(FirstSwingExample::getUsersTableForEncryption).start());
 		panel.add(encryptPanel);
 
+		JButton signAuthButton = new JButton("Select Private Key To Sign With");
+		signAuthButton.addActionListener(event -> new Thread(FirstSwingExample::getUsersTablePrivateKeyInput).start());
+		panel.add(signAuthButton);
 
 		JPanel authPanel = new JPanel();
-		JTextField signAuthTextField = new JTextField(30);
-		signAuthTextField.setEditable(false);
-		JButton signAuthButton = new JButton("Authentication");
-		authPanel.add(signAuthButton);
-		authPanel.add(signAuthTextField);
 		panel.add(authPanel);
 
-		JPanel passwordPKPanel = new JPanel();
-		JLabel passwordLabel = new JLabel("Password");
-		passwordPKPanel.add(passwordLabel);
-		JTextField passwordTextField = new JTextField(20);
-		passwordPKPanel.add(passwordTextField);
-		panel.add(passwordPKPanel);
+		JLabel encryptionAlgorithmLabel = new JLabel("Encryption Algorithm:");
+		authPanel.add(encryptionAlgorithmLabel);
 
-		signAuthButton.addActionListener(e -> {
-			JFileChooser chooser = new JFileChooser(PATH_TO_KEYS_DIR);
-			if (chooser.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
-				File selectedFile = chooser.getSelectedFile();
-				if(!selectedFile.getName().endsWith(".priv.asc")){
-					showMessageDialog(null, "Choose private key!");
-					return;
-				}
-				UUID keyId = UUID.fromString(
-						selectedFile.getName().split("\\.")[0]);
-				if(!passwordTextField.getText().equals(OPENPGP_CLIENT.getPasswordForKeyId(keyId))){
-					showMessageDialog(null, "Wrong password for chosen private key!");
-					return;
-				}
-
-				signAuthTextField.setText(selectedFile.getName());
-			}
-		});
-
-
-		JPanel signignAlgorithmPanel = new JPanel();
-		JLabel signingAlhoritmLabel = new JLabel("Signing algorithm: ");
-		signignAlgorithmPanel.add(signingAlhoritmLabel);
-		JComboBox<KeyPairAlgorithm> signingAlgorithms = new JComboBox<>(KeyPairAlgorithm.getSigningAlgorithms());
-		signignAlgorithmPanel.add(signingAlgorithms);
-		panel.add(signignAlgorithmPanel);
-
-		JPanel encryptAlgorithmPanel = new JPanel();
-		JLabel encryptAlgorithmLabel = new JLabel("Encryption algorithm: ");
-		encryptAlgorithmPanel.add(encryptAlgorithmLabel);
-		JComboBox<KeyPairAlgorithm> encryptAlgorithms = new JComboBox<>(KeyPairAlgorithm.getEncryptionAlgorithms());
-		encryptAlgorithmPanel.add(encryptAlgorithms);
-		panel.add(encryptAlgorithmPanel);
-
+		JComboBox<EncryptionAlgorithm> encryptionAlgorithms = new JComboBox<>(EncryptionAlgorithm.getEncryptionAlgorithms());
+		encryptionAlgorithms.setSize(100, 20);
+		authPanel.add(encryptionAlgorithms);
 
 		JPanel checkBoxPanel = new JPanel();
 		JCheckBox compressCheckBox = new JCheckBox("Compress");
@@ -341,24 +312,21 @@ public class FirstSwingExample {
 		checkBoxPanel.add(radix64CheckBox);
 		panel.add(checkBoxPanel);
 
+		JTextField encryptedMessageFilePath = new JTextField("File path");
+		panel.add(encryptedMessageFilePath);
+
 		JButton submitButton = new JButton("Submit");
-//		submitButton.addActionListener(e -> {
-//			String message = messageTextArea.getText();
-//			if (message == null || message.equals("")){
-//				showMessageDialog(null, "Message is empty! Nothing to encrypt.");
-//				return;
-//			}
-//
-//			boolean shouldCompress = compressCheckBox.isSelected();
-//			boolean shouldEncode = radix64CheckBox.isSelected();
-//			UUID publicKeyUUID = UUID.fromString(encryptTextField.getText().split("\\.")[0]);
-//			UUID privateKeyUUID = UUID.fromString(signAuthTextField.getText().split("\\.")[0]);
-//			KeyPairAlgorithm encryptionAlgorithm = (KeyPairAlgorithm) encryptAlgorithms.getSelectedItem();
-//			KeyPairAlgorithm signingAlgorithm = (KeyPairAlgorithm) signingAlgorithms.getSelectedItem();
-//
-//			OPENPGP_CLIENT.encrypt(message, publicKeyUUID, encryptionAlgorithm.getAsymmetricStrategy(), shouldCompress,
-//					privateKeyUUID, );
-//		});
+		submitButton.addActionListener(event -> {
+			byte[] encryptedBytes = OPENPGP_CLIENT.encrypt(
+					messageTextArea.getText(),
+					publicKeysForEncryption.get(),
+					(EncryptionAlgorithm) Objects.requireNonNull(encryptionAlgorithms.getSelectedItem()),
+					compressCheckBox.isSelected(),
+					privateKey.get(),
+					privateKeyPassword.get(),
+					radix64CheckBox.isSelected());
+			OpenPGP.flushToFile(encryptedBytes, encryptedMessageFilePath.getText());
+		});
 		panel.add(submitButton);
 
 		dialog.add(panel);
@@ -368,23 +336,13 @@ public class FirstSwingExample {
 		return dialog;
 	}
 
+
 	private static JButton getDecryptMessageButton(){
 		return new JButton("Decrypt");
 	}
 
 	private static JScrollPane getUsersTable(boolean clickable) {
 		String[] columnNames = new String[]{"Name", "Email", "Signing Key Type", "Encryption Key Type", "ID", "Password"};
-		List<UserKeyInfo> userKeys = OPENPGP_CLIENT.getUserKeys();
-		String[][] data = new String[userKeys.size()][columnNames.length];
-		for (int i = 0; i < userKeys.size(); i++) {
-			UserKeyInfo currentUserKey = userKeys.get(i);
-			data[i][0] = currentUserKey.getUsername();
-			data[i][1] = currentUserKey.getEmail();
-			data[i][2] = currentUserKey.getSignatureKeyType().name();
-			data[i][3] = currentUserKey.getEncryptionKeyType().name();
-			data[i][4] = currentUserKey.getKeyId().toString();
-			data[i][5] = currentUserKey.getPassword();
-		}
 
 		JTable table = new JTable(data, columnNames) {
 			@Override
@@ -411,5 +369,85 @@ public class FirstSwingExample {
 		table.setSize(WINDOW_WIDTH, (int) (WINDOW_HEIGHT * 0.7));
 		return new JScrollPane(table, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
 				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+	}
+
+	private static JTable getUsersTableTable() {
+		JTable table = new JTable(data, columnNames) {
+			@Override
+			public boolean isCellEditable(int row, int column) {
+				return false;
+			}
+		};
+		TableColumnModel columnModel = table.getColumnModel();
+		columnModel.removeColumn(columnModel.getColumn(columnNames.length - 1));
+		columnModel.removeColumn(columnModel.getColumn(columnNames.length - 2));
+		table.setSize(WINDOW_WIDTH, (int) (WINDOW_HEIGHT * 0.7));
+		return table;
+	}
+
+	private static void getUsersTableForEncryption() {
+		JDialog dialog = new JDialog();
+
+		JTable table = getUsersTableTable();
+		dialog.add(table, BorderLayout.CENTER);
+
+		JButton submitButton = new JButton("Choose");
+		submitButton.addActionListener(event->{
+			List<UUID> publicKeys = Arrays.stream(table.getSelectedRows())
+					.mapToObj(selectedRow -> data[selectedRow][columnNames.length - 2])
+					.map(UUID::fromString)
+					.collect(Collectors.toList());
+			publicKeysForEncryption.set(publicKeys);
+			dialog.dispose();
+		});
+		dialog.add(submitButton, BorderLayout.SOUTH);
+
+		dialog.setSize((int) (WINDOW_WIDTH * 0.8), (int) (WINDOW_HEIGHT * 0.8));
+		dialog.setLocation((int) (LOCATION_X * 1.4), (int) (LOCATION_Y * 1.2));
+		dialog.setVisible(true);
+	}
+
+	private static void getUsersTablePrivateKeyInput() {
+		JDialog dialog = new JDialog();
+		JPanel panel = new JPanel();
+		dialog.add(panel);
+
+		JTable table = getUsersTableTable();
+		table.setPreferredSize(new Dimension(300, 500));
+		panel.add(table, BorderLayout.CENTER);
+
+		JLabel passwordLabel = new JLabel("Enter Password:");
+		passwordLabel.setVisible(true);
+		panel.add(passwordLabel, BorderLayout.SOUTH);
+
+		JTextField passwordTextField = new JTextField();
+		passwordTextField.setSize(200, 50);
+		passwordTextField.setVisible(true);
+		panel.add(passwordTextField, BorderLayout.SOUTH);
+
+		JButton submitButton = new JButton("Choose");
+		submitButton.addActionListener(event->{
+			int selectedRow = table.getSelectedRow();
+			if(selectedRow == -1) {
+				return;
+			}
+			String uuidString = data[selectedRow][IdColumnIndex];
+			UUID privateKeyId = UUID.fromString(uuidString);
+
+			String realPassword = OPENPGP_CLIENT.getPasswordForKeyId(privateKeyId);
+			boolean passwordsMatch = realPassword.equals(passwordTextField.getText());
+			if(passwordsMatch) {
+				privateKey.set(privateKeyId);
+				privateKeyPassword.set(realPassword);
+				dialog.dispose();
+			} else {
+				showMessageDialog(dialog, "Invalid Password!");
+			}
+		});
+		panel.add(submitButton, BorderLayout.SOUTH);
+
+		dialog.setSize((int) (WINDOW_WIDTH * 0.8), (int) (WINDOW_HEIGHT * 0.8));
+		dialog.setLocation((int) (LOCATION_X * 1.4), (int) (LOCATION_Y * 1.2));
+		dialog.setVisible(true);
 	}
 }

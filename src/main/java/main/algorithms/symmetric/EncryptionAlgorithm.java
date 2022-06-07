@@ -20,8 +20,8 @@ import org.bouncycastle.util.Arrays;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.security.KeyException;
 import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -96,5 +96,9 @@ public enum EncryptionAlgorithm {
 		}
 
 		return new String(decrypt);
+	}
+
+	public static EncryptionAlgorithm[] getEncryptionAlgorithms() {
+		return new EncryptionAlgorithm[] { TRIPLE_DES, CAST5 };
 	}
 }
