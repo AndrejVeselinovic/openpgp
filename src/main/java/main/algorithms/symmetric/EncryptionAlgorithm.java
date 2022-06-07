@@ -1,8 +1,10 @@
 package main.algorithms.symmetric;
 
 import lombok.AllArgsConstructor;
+import main.dtos.DecryptionInfo;
 import main.dtos.PublicKeyInfo;
 import main.dtos.SecretKeyInfo;
+import main.dtos.UserKeyInfo;
 import main.repositories.FileRepository;
 import main.repositories.Repository;
 import main.utils.PGPDecrypt;
@@ -18,6 +20,7 @@ import org.bouncycastle.openpgp.PGPSecretKey;
 import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyDecryptorBuilder;
 import org.bouncycastle.util.Arrays;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Collection;
@@ -72,7 +75,7 @@ public enum EncryptionAlgorithm {
 		return bytesToEncrypt;
 	}
 
-	public static String decryptMessage(byte[] encryptedData, String password, UUID keyId)
+	public static DecryptionInfo decryptMessage(byte[] encryptedData, String password, UUID keyId)
 			throws PGPException, IOException {
 		boolean shouldDecode = Base64.isBase64(encryptedData);
 		if (shouldDecode) {
@@ -82,20 +85,27 @@ public enum EncryptionAlgorithm {
 		PGPSecretKey secretKey = secretKeyInfo.getSecretKey();
 		PGPPrivateKey pgpPrivateKey = fromPGPSecretKey(secretKey, password);
 
-		byte[] decrypt = PGPDecrypt.decrypt(encryptedData, pgpPrivateKey);
+		byte[] messageBytes = PGPDecrypt.decrypt(encryptedData, pgpPrivateKey);
+		UserKeyInfo signingInfo = null;
 		int tagSize = UUID_LENGTH + SIGNATURE_TAG.getBytes().length;
-		if (decrypt.length > tagSize) {
-			byte[] signatureTag = Arrays.copyOfRange(decrypt, 0, SIGNATURE_TAG.getBytes().length);
+		if (messageBytes.length > tagSize) {
+			byte[] signatureTag = Arrays.copyOfRange(messageBytes, 0, SIGNATURE_TAG.getBytes().length);
 			if (new String(signatureTag).equals(SIGNATURE_TAG)) {
-				byte[] uuidBytes = Arrays.copyOfRange(decrypt, SIGNATURE_TAG.getBytes().length, tagSize);
+				byte[] uuidBytes = Arrays.copyOfRange(messageBytes, SIGNATURE_TAG.getBytes().length, tagSize);
 				UUID signingKey = UUID.fromString(new String(uuidBytes));
-				PublicKeyInfo publicSigningKey = repository.getPublicSigningKey(signingKey);
-				decrypt = Arrays.copyOfRange(decrypt, tagSize, decrypt.length);
-				decrypt = PGPVerify.verify(decrypt, publicSigningKey.getPublicKey());
+				PublicKeyInfo publicSigningKey;
+				try {
+					publicSigningKey = repository.getPublicSigningKey(signingKey);
+				} catch(Exception e) {
+					throw new RuntimeException("Missing public key for verifying signature");
+				}
+				messageBytes = Arrays.copyOfRange(messageBytes, tagSize, messageBytes.length);
+				messageBytes = PGPVerify.verify(messageBytes, publicSigningKey.getPublicKey());
+				signingInfo = repository.getUserKeyInfo(signingKey);
 			}
 		}
 
-		return new String(decrypt);
+		return new DecryptionInfo(signingInfo, new String(messageBytes));
 	}
 
 	public static EncryptionAlgorithm[] getEncryptionAlgorithms() {

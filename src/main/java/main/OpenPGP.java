@@ -3,6 +3,7 @@ package main;
 import lombok.AllArgsConstructor;
 import main.algorithms.asymmetric.KeyPairAlgorithm;
 import main.algorithms.symmetric.EncryptionAlgorithm;
+import main.dtos.DecryptionInfo;
 import main.dtos.UserKeyInfo;
 import main.repositories.FileRepository;
 import main.repositories.Repository;
@@ -23,7 +24,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -93,16 +93,12 @@ public class OpenPGP {
 			UUID keyToSignMessageWith,
 			String signingKeyPassword,
 			boolean shouldEncode
-	) {
-		try {
-			return encryptionAlgorithm.encryptMessage(message, publicKeyUuids, shouldCompress,
+	) throws PGPException, GeneralSecurityException, IOException {
+		return encryptionAlgorithm.encryptMessage(message, publicKeyUuids, shouldCompress,
 					keyToSignMessageWith, signingKeyPassword, shouldEncode);
-		} catch (IOException | PGPException | GeneralSecurityException e) {
-			throw new RuntimeException(e);
-		}
 	}
 
-	public String decrypt(byte[] message, String password, UUID privateKeyUuid) throws PGPException, IOException {
+	public DecryptionInfo decrypt(byte[] message, String password, UUID privateKeyUuid) throws PGPException, IOException {
 		return EncryptionAlgorithm.decryptMessage(message, password, privateKeyUuid);
 	}
 
@@ -140,9 +136,9 @@ public class OpenPGP {
 		byte[] encryptedBytes = openPGP.encrypt(message, List.of(new UUID[] {keyPairUuid, keyPairUuid2}), EncryptionAlgorithm.CAST5, true, keyPairUuid, password, true);
 		System.out.println("Successfully encrypted");
 		flushToFile(encryptedBytes, "message.txt");
-		String decryptedString = openPGP.decrypt(encryptedBytes, password, keyPairUuid2);
+		DecryptionInfo decryptedString = openPGP.decrypt(encryptedBytes, password, keyPairUuid2);
 		System.out.println("Successfully decrypted");
-		System.out.println(decryptedString);
+		System.out.println(decryptedString.getMessage());
 
 		System.out.println(openPGP.repository.getPasswordForKeyId(
 				UUID.fromString("adaaa6fc-d1ea-46da-9a7c-145dd9c48731")));

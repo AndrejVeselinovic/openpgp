@@ -32,4 +32,6 @@ public interface Repository {
 	String getPasswordForKeyId(UUID keyId);
 
 	byte[] retrievePublicKey(UUID keyId);
+
+	UserKeyInfo getUserKeyInfo(UUID keyId);
 }

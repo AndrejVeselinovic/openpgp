@@ -3,22 +3,16 @@ package main.gui;
 import main.OpenPGP;
 import main.algorithms.asymmetric.KeyPairAlgorithm;
 import main.algorithms.symmetric.EncryptionAlgorithm;
+import main.dtos.DecryptionInfo;
 import main.dtos.UserKeyInfo;
 import main.repositories.FileRepository;
-import org.bouncycastle.crypto.examples.JPAKEExample;
-import org.bouncycastle.openpgp.PGPException;
 
 import javax.swing.*;
 import javax.swing.table.TableColumnModel;
 import java.awt.*;
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.rmi.server.ExportException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -99,9 +93,28 @@ public class FirstSwingExample {
 
 	private static JButton getExportButton() {
 		JButton exportButton = new JButton("Export");
-		JDialog dialog = getGenerateKeyPairDialog();
+		JDialog dialog = getExportDialog();
 		exportButton.addActionListener(event -> dialog.setVisible(true));
 		return exportButton;
+	}
+
+	private static JDialog getExportDialog() {
+		JDialog dialog = new JDialog();
+		JPanel panel = new JPanel();
+		dialog.add(panel);
+
+		JLabel label = new JLabel("Export Path:");
+		panel.add(label);
+
+		JTextField textField = new JTextField();
+		panel.add(textField);
+
+		JButton exportButton = new JButton("Export");
+		exportButton.addActionListener(event -> {
+		});
+		panel.add(exportButton);
+
+		return dialog;
 	}
 
 	private static JButton getImportButton() {
@@ -325,15 +338,21 @@ public class FirstSwingExample {
 
 		JButton submitButton = new JButton("Submit");
 		submitButton.addActionListener(event -> {
-			byte[] encryptedBytes = OPENPGP_CLIENT.encrypt(
-					messageTextArea.getText(),
-					publicKeysForEncryption.get(),
-					(EncryptionAlgorithm) Objects.requireNonNull(encryptionAlgorithms.getSelectedItem()),
-					compressCheckBox.isSelected(),
-					privateKey.get(),
-					privateKeyPassword.get(),
-					radix64CheckBox.isSelected());
-			OpenPGP.flushToFile(encryptedBytes, encryptedMessageFilePath.getText());
+			try {
+				byte[] encryptedBytes = OPENPGP_CLIENT.encrypt(
+						messageTextArea.getText(),
+						publicKeysForEncryption.get(),
+						(EncryptionAlgorithm) Objects.requireNonNull(encryptionAlgorithms.getSelectedItem()),
+						compressCheckBox.isSelected(),
+						privateKey.get(),
+						privateKeyPassword.get(),
+						radix64CheckBox.isSelected());
+				OpenPGP.flushToFile(encryptedBytes, encryptedMessageFilePath.getText());
+				showMessageDialog(dialog, "Success");
+			} catch (Exception e) {
+				showMessageDialog(dialog, e.getMessage());
+				throw new RuntimeException(e);
+			}
 		});
 		panel.add(submitButton);
 
@@ -380,10 +399,11 @@ public class FirstSwingExample {
 		JButton decryptButton = new JButton("Decrypt!");
 		decryptButton.addActionListener(event -> {
 			try {
-				String message = OPENPGP_CLIENT.decrypt(bytesToDecrypt.get(), privateKeyPassword.get(), privateKey.get());
-				showMessageDialog(dialog, message);
+				DecryptionInfo decryptionInfo = OPENPGP_CLIENT.decrypt(bytesToDecrypt.get(), privateKeyPassword.get(), privateKey.get());
+				showDecryptionInfoDialog(dialog, decryptionInfo);
 			} catch (Exception e) {
-				showMessageDialog(dialog, e.getMessage());
+				showDecryptionInfoDialog(dialog, new DecryptionInfo(e));
+				throw new RuntimeException(e);
 			}
 		});
 		panel.add(decryptButton, BorderLayout.SOUTH);
@@ -391,6 +411,48 @@ public class FirstSwingExample {
 		dialog.setSize((int) (WINDOW_WIDTH * 0.8), (int) (WINDOW_HEIGHT * 0.7));
 		dialog.setLocation((int) (LOCATION_X * 1.4), (int) (LOCATION_Y * 1.2));
 		return dialog;
+	}
+
+	private static void showDecryptionInfoDialog(Dialog parent, DecryptionInfo decryptionInfo) {
+		JDialog dialog = new JDialog(parent);
+		JPanel panel = new JPanel(new GridLayout(5, 2));
+		dialog.add(panel);
+
+		JLabel statusLabel = new JLabel("Status:");
+		panel.add(statusLabel);
+		JLabel status = new JLabel(decryptionInfo.getStatus().name());
+		panel.add(status);
+
+		JLabel signerUsernameLabel = new JLabel("Signer Username:");
+		panel.add(signerUsernameLabel);
+		JLabel signerUsername = new JLabel(decryptionInfo.getSigningInfo().getUsername());
+		panel.add(signerUsername);
+
+		JLabel signerEmailLabel = new JLabel("Signer Email:");
+		panel.add(signerEmailLabel);
+		JLabel signerEmail = new JLabel(decryptionInfo.getSigningInfo().getEmail());
+		panel.add(signerEmail);
+
+		JLabel signerKeyTypeLabel = new JLabel("Signer Key Type Label:");
+		panel.add(signerKeyTypeLabel);
+		JLabel signerKeyType = new JLabel(decryptionInfo.getSigningInfo().getSignatureKeyType().name());
+		panel.add(signerKeyType);
+
+		if(decryptionInfo.getStatus().equals(DecryptionInfo.Status.FAIL)) {
+			JLabel messageLabel = new JLabel("Failure Reason:");
+			panel.add(messageLabel);
+			JLabel message = new JLabel(decryptionInfo.getFailureException().getMessage());
+			panel.add(message);
+		} else {
+			JLabel messageLabel = new JLabel("Decrypted Message:");
+			panel.add(messageLabel);
+			JLabel message = new JLabel(decryptionInfo.getMessage());
+			panel.add(message);
+		}
+
+		dialog.setSize((int) (WINDOW_WIDTH * 0.8), (int) (WINDOW_HEIGHT * 0.7));
+		dialog.setLocation((int) (LOCATION_X * 1.4), (int) (LOCATION_Y * 1.2));
+		dialog.setVisible(true);
 	}
 
 	private static JScrollPane getUsersPanel() {

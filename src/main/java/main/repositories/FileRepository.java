@@ -278,6 +278,25 @@ public class FileRepository implements Repository {
 		}
 	}
 
+	@Override
+	public UserKeyInfo getUserKeyInfo(UUID keyId) {
+		try (BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE))) {
+			while (true) {
+				String line = bufferedReader.readLine();
+				if (line == null) {
+					break;
+				}
+				UserKeyInfo userInfo = fromLine(line);
+				if (userInfo.getKeyId().equals(keyId)) {
+					return userInfo;
+				}
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		return null;
+	}
+
 	private void deleteDirectory(File directoryToBeDeleted) {
 		File[] allContents = directoryToBeDeleted.listFiles();
 		if (allContents != null) {
