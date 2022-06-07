@@ -21,6 +21,7 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -295,6 +296,23 @@ public class FileRepository implements Repository {
 			throw new RuntimeException(e);
 		}
 		return null;
+	}
+
+	@Override
+	public void exportKeyPair(UUID keyId, String newPath) throws IOException {
+		String publicKeyFilePath = this.getPublicKeyFilePath(keyId);
+		File publicKeyFile = new File(publicKeyFilePath);
+		File newPublicKeyFile = new File(newPath + PUBLIC_KEY_EXTENSION + KEY_EXTENSION);
+		try(FileOutputStream outputStream = new FileOutputStream(newPublicKeyFile)){
+			outputStream.write(Files.readAllBytes(publicKeyFile.toPath()));
+		}
+
+		String privateKeyFilePath = this.getPrivateKeyFilePath(keyId);
+		File privateKeyFile = new File(privateKeyFilePath);
+		File newPrivateKeyFile = new File(newPath + PRIVATE_KEY_EXTENSION + KEY_EXTENSION);
+		try(FileOutputStream outputStream = new FileOutputStream(newPrivateKeyFile)){
+			outputStream.write(Files.readAllBytes(privateKeyFile.toPath()));
+		}
 	}
 
 	private void deleteDirectory(File directoryToBeDeleted) {

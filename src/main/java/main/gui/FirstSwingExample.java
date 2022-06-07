@@ -101,19 +101,34 @@ public class FirstSwingExample {
 	private static JDialog getExportDialog() {
 		JDialog dialog = new JDialog();
 		JPanel panel = new JPanel();
+		panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 		dialog.add(panel);
 
-		JLabel label = new JLabel("Export Path:");
-		panel.add(label);
+		JButton chooseKeyPairButton = new JButton("Choose Key Pair");
+		chooseKeyPairButton.addActionListener(event -> new Thread(FirstSwingExample::getUsersTableForEncryption).start());
+		panel.add(chooseKeyPairButton);
 
-		JTextField textField = new JTextField();
-		panel.add(textField);
+		JPanel exportInputPanel = new JPanel();
+		JLabel label = new JLabel("Export Path:");
+		exportInputPanel.add(label);
+		JTextField textField = new JTextField(20);
+		exportInputPanel.add(textField);
+		panel.add(exportInputPanel);
 
 		JButton exportButton = new JButton("Export");
 		exportButton.addActionListener(event -> {
+			try{
+				OPENPGP_CLIENT.exportKeyPair(publicKeysForEncryption.get().stream().findFirst().get(), textField.getText());
+				showMessageDialog(dialog, "Success");
+			} catch (Exception e) {
+				showMessageDialog(dialog, e.getMessage());
+			}
 		});
 		panel.add(exportButton);
 
+		dialog.setSize((int) (WINDOW_WIDTH * 0.8), (int) (WINDOW_HEIGHT * 0.8));
+		dialog.setLocation((int) (LOCATION_X * 1.4), (int) (LOCATION_Y * 1.2));
+		dialog.setVisible(true);
 		return dialog;
 	}
 

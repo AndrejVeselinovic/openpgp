@@ -5,6 +5,7 @@ import main.dtos.SecretKeyInfo;
 import main.dtos.UserKeyInfo;
 import org.bouncycastle.openpgp.PGPKeyRingGenerator;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -34,4 +35,6 @@ public interface Repository {
 	byte[] retrievePublicKey(UUID keyId);
 
 	UserKeyInfo getUserKeyInfo(UUID keyId);
+
+	void exportKeyPair(UUID keyId, String newPath) throws IOException;
 }

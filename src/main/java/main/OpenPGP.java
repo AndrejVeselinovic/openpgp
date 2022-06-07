@@ -120,6 +120,10 @@ public class OpenPGP {
 		}
 	}
 
+	public void exportKeyPair(UUID keyId, String newPath) throws IOException {
+		this.repository.exportKeyPair(keyId, newPath);
+	}
+
 	public static void main(String[] args) throws Exception {
 		OpenPGP openPGP = new OpenPGP(new FileRepository());
 
