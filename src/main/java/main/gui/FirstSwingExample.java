@@ -5,10 +5,18 @@ import main.algorithms.asymmetric.KeyPairAlgorithm;
 import main.algorithms.symmetric.EncryptionAlgorithm;
 import main.dtos.UserKeyInfo;
 import main.repositories.FileRepository;
+import org.bouncycastle.crypto.examples.JPAKEExample;
 
 import javax.swing.*;
 import javax.swing.table.TableColumnModel;
 import java.awt.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -27,7 +35,6 @@ public class FirstSwingExample {
 	private static final int LOCATION_Y = 300;
 
 	private static final String PATH_TO_KEYS_DIR = "D:/Nedim/ZP/openpgp/keys";
-
 
 	private static final String[] columnNames = new String[]{"Name", "Email", "Signing Key Type", "Encryption Key Type", "ID", "Password"};
 	private static final int IdColumnIndex = columnNames.length - 2;
@@ -337,7 +344,47 @@ public class FirstSwingExample {
 
 
 	private static JButton getDecryptMessageButton(){
-		return new JButton("Decrypt");
+		JButton decryptButton =  new JButton("Decrypt");
+		JDialog dialog = getDecryptDialog();
+		decryptButton.addActionListener(event -> dialog.setVisible(true));
+		return decryptButton;
+	}
+
+	private static JDialog getDecryptDialog() {
+		JDialog dialog = new JDialog();
+		JPanel panel = new JPanel();
+		dialog.add(panel);
+
+		final AtomicReference<byte[]> bytesToDecrypt = new AtomicReference<>();
+
+		JButton selectFileButton = new JButton("Choose File To Decrypt");
+		selectFileButton.addActionListener(event -> {
+			JFileChooser chooser = new JFileChooser();
+			if (chooser.showOpenDialog(dialog) == JFileChooser.APPROVE_OPTION) {
+				File selectedFile = chooser.getSelectedFile();
+				try {
+					bytesToDecrypt.set(Files.readAllBytes(selectedFile.toPath()));
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			}
+		});
+		panel.add(selectFileButton, BorderLayout.NORTH);
+
+		JButton privateKeySelectionButton = new JButton("Select Private Key");
+		privateKeySelectionButton.addActionListener(event -> new Thread(FirstSwingExample::getUsersTablePrivateKeyInput).start());
+		panel.add(privateKeySelectionButton, BorderLayout.CENTER);
+
+		JButton decryptButton = new JButton("Decrypt!");
+		decryptButton.addActionListener(event -> {
+			String message = OPENPGP_CLIENT.decrypt(bytesToDecrypt.get(), privateKeyPassword.get(), privateKey.get());
+			showMessageDialog(dialog, message);
+		});
+		panel.add(decryptButton, BorderLayout.SOUTH);
+
+		dialog.setSize((int) (WINDOW_WIDTH * 0.8), (int) (WINDOW_HEIGHT * 0.7));
+		dialog.setLocation((int) (LOCATION_X * 1.4), (int) (LOCATION_Y * 1.2));
+		return dialog;
 	}
 
 	private static JScrollPane getUsersPanel() {
