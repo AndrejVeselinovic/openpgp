@@ -6,10 +6,6 @@ import java.security.Security;
 
 public class TripleDes extends SymmetricEncryptionStrategy {
 
-	static {
-		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-	}
-
 	@Override
 	public int getSymmetricKeyAlgorithmTag() {
 		return SymmetricKeyAlgorithmTags.TRIPLE_DES;

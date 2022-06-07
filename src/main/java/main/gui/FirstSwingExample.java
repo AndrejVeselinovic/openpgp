@@ -83,7 +83,7 @@ public class FirstSwingExample {
 		JPanel buttonPanel = new JPanel();
 
 		buttonPanel.add(getGenerateKeyPairButton());
-		buttonPanel.add(getDeletePrivateKeyButton());
+		buttonPanel.add(getDeleteKeyPairButton());
 		buttonPanel.add(getEncryptMessageButton());
 		buttonPanel.add(getDecryptMessageButton());
 		buttonPanel.add(getImportButton());
@@ -93,8 +93,8 @@ public class FirstSwingExample {
 
 	private static JButton getExportButton() {
 		JButton exportButton = new JButton("Export");
-		JDialog dialog = getExportDialog();
-		exportButton.addActionListener(event -> dialog.setVisible(true));
+		AtomicReference<JDialog> dialog = new AtomicReference<>(getExportDialog());
+		exportButton.addActionListener(event -> dialog.get().setVisible(true));
 		return exportButton;
 	}
 
@@ -122,31 +122,28 @@ public class FirstSwingExample {
 				showMessageDialog(dialog, "Success");
 			} catch (Exception e) {
 				showMessageDialog(dialog, e.getMessage());
+				throw new RuntimeException(e);
 			}
 		});
 		panel.add(exportButton);
 
 		dialog.setSize((int) (WINDOW_WIDTH * 0.8), (int) (WINDOW_HEIGHT * 0.8));
 		dialog.setLocation((int) (LOCATION_X * 1.4), (int) (LOCATION_Y * 1.2));
-		dialog.setVisible(true);
 		return dialog;
 	}
 
 	private static JButton getImportButton() {
-		JButton importButton = new JButton("Import");
-		JDialog dialog = getDeletePrivateKeyDialog();
-		importButton.addActionListener(event -> dialog.setVisible(true));
-		return importButton;
+		return new JButton("Import");
 	}
 
-	private static JButton getDeletePrivateKeyButton() {
-		JButton deletePrivateKeyButton = new JButton("Delete Private Key");
-		JDialog dialog = getDeletePrivateKeyDialog();
-		deletePrivateKeyButton.addActionListener(event -> dialog.setVisible(true));
+	private static JButton getDeleteKeyPairButton() {
+		JButton deletePrivateKeyButton = new JButton("Delete Key Pair Button");
+		AtomicReference<JDialog> dialog = new AtomicReference<>(getDeleteKeyPairDialog());
+		deletePrivateKeyButton.addActionListener(event -> dialog.get().setVisible(true));
 		return deletePrivateKeyButton;
 	}
 
-	private static JDialog getDeletePrivateKeyDialog() {
+	private static JDialog getDeleteKeyPairDialog() {
 		JDialog dialog = new JDialog();
 		JPanel panel = new JPanel();
 
