@@ -18,7 +18,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class FileRepository implements Repository {
 	private static final String KEY_RING_DIRECTORY = "keys/";
@@ -316,9 +315,6 @@ public class FileRepository implements Repository {
 				lines.add(line);
 			}
 
-//
-//			File newUsersFile = new File(tempFileName);
-//			newUsersFile.renameTo(initialUsersFile);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -327,7 +323,7 @@ public class FileRepository implements Repository {
 			Files.delete(Path.of(USERS_FILE));
 			BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(USERS_FILE));
 			for (String line: lines)
-				bufferedWriter.write(line);
+				bufferedWriter.write(line + "\n");
 
 			bufferedWriter.close();
 		} catch (IOException e) {
