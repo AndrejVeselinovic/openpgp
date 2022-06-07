@@ -47,7 +47,7 @@ public class PGPDecrypt {
 				}
 
 				return data;
-			} catch (Exception ignored) {}
+			} catch (PGPException ignored) {} // has to stay ignored
 		}
 		throw new RuntimeException("Tried to decrypt with wrong private key");
 	}

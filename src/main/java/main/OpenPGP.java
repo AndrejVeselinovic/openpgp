@@ -102,12 +102,8 @@ public class OpenPGP {
 		}
 	}
 
-	public String decrypt(byte[] message, String password, UUID privateKeyUuid) {
-		try {
-			return EncryptionAlgorithm.decryptMessage(message, password, privateKeyUuid);
-		} catch (PGPException | IOException e) {
-			throw new RuntimeException(e);
-		}
+	public String decrypt(byte[] message, String password, UUID privateKeyUuid) throws PGPException, IOException {
+		return EncryptionAlgorithm.decryptMessage(message, password, privateKeyUuid);
 	}
 
 	public static void flushToFile(byte[] bytes) {

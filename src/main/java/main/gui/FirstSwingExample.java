@@ -6,6 +6,7 @@ import main.algorithms.symmetric.EncryptionAlgorithm;
 import main.dtos.UserKeyInfo;
 import main.repositories.FileRepository;
 import org.bouncycastle.crypto.examples.JPAKEExample;
+import org.bouncycastle.openpgp.PGPException;
 
 import javax.swing.*;
 import javax.swing.table.TableColumnModel;
@@ -17,6 +18,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.rmi.server.ExportException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -377,8 +379,12 @@ public class FirstSwingExample {
 
 		JButton decryptButton = new JButton("Decrypt!");
 		decryptButton.addActionListener(event -> {
-			String message = OPENPGP_CLIENT.decrypt(bytesToDecrypt.get(), privateKeyPassword.get(), privateKey.get());
-			showMessageDialog(dialog, message);
+			try {
+				String message = OPENPGP_CLIENT.decrypt(bytesToDecrypt.get(), privateKeyPassword.get(), privateKey.get());
+				showMessageDialog(dialog, message);
+			} catch (Exception e) {
+				showMessageDialog(dialog, e.getMessage());
+			}
 		});
 		panel.add(decryptButton, BorderLayout.SOUTH);
 
