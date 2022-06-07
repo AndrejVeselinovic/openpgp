@@ -500,20 +500,18 @@ public class FirstSwingExample {
 	private static void getUsersTablePrivateKeyInput() {
 		JDialog dialog = new JDialog();
 		JPanel panel = new JPanel();
+		panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 		dialog.add(panel);
 
 		JTable table = getUsersTable();
-		table.setPreferredSize(new Dimension(300, 500));
-		panel.add(table, BorderLayout.CENTER);
+		JScrollPane tableContainer = new JScrollPane(table);
+		panel.add(tableContainer);
 
+		JPanel bottomPanel = new JPanel();
 		JLabel passwordLabel = new JLabel("Enter Password:");
-		passwordLabel.setVisible(true);
-		panel.add(passwordLabel, BorderLayout.SOUTH);
-
-		JTextField passwordTextField = new JTextField();
-		passwordTextField.setSize(200, 50);
-		passwordTextField.setVisible(true);
-		panel.add(passwordTextField, BorderLayout.SOUTH);
+		bottomPanel.add(passwordLabel);
+		JTextField passwordTextField = new JTextField(20);
+		bottomPanel.add(passwordTextField, BorderLayout.SOUTH);
 
 		JButton submitButton = new JButton("Choose");
 		submitButton.addActionListener(event->{
@@ -534,9 +532,10 @@ public class FirstSwingExample {
 				showMessageDialog(dialog, "Invalid Password!");
 			}
 		});
-		panel.add(submitButton, BorderLayout.SOUTH);
+		bottomPanel.add(submitButton, BorderLayout.SOUTH);
 
-		dialog.setSize((int) (WINDOW_WIDTH * 0.8), (int) (WINDOW_HEIGHT * 0.8));
+		panel.add(bottomPanel);
+		dialog.setSize((int) (WINDOW_WIDTH * 0.8), WINDOW_HEIGHT);
 		dialog.setLocation((int) (LOCATION_X * 1.4), (int) (LOCATION_Y * 1.2));
 		dialog.setVisible(true);
 	}
