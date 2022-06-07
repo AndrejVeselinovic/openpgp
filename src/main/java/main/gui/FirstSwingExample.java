@@ -9,16 +9,11 @@ import main.repositories.FileRepository;
 import javax.swing.*;
 import javax.swing.table.TableColumnModel;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -36,7 +31,7 @@ public class FirstSwingExample {
 
 	private static final String[] columnNames = new String[]{"Name", "Email", "Signing Key Type", "Encryption Key Type", "ID", "Password"};
 	private static final int IdColumnIndex = columnNames.length - 2;
-	private static final String[][] data;
+	private static String[][] data;
 	private static final AtomicReference<Collection<UUID>> publicKeysForEncryption = new AtomicReference<>();
 	private static final AtomicReference<UUID> privateKey = new AtomicReference<>();
 	private static final AtomicReference<String> privateKeyPassword = new AtomicReference<>();
@@ -44,6 +39,10 @@ public class FirstSwingExample {
 	private static JScrollPane usersPanel;
 
 	static {
+		updateData();
+	}
+
+	private static void updateData() {
 		List<UserKeyInfo> userKeys = OPENPGP_CLIENT.getUserKeys();
 		data = new String[userKeys.size()][columnNames.length];
 		for (int i = 0; i < userKeys.size(); i++) {
@@ -252,7 +251,7 @@ public class FirstSwingExample {
 			mainPanel.remove(usersPanel);
 		}
 
-		usersPanel = getUsersTable(false);
+		usersPanel = getUsersPanel();
 		mainPanel.add(usersPanel, BorderLayout.CENTER);
 
 		JPanel buttonsPanel = getButtonsPanel();
@@ -341,37 +340,13 @@ public class FirstSwingExample {
 		return new JButton("Decrypt");
 	}
 
-	private static JScrollPane getUsersTable(boolean clickable) {
-		String[] columnNames = new String[]{"Name", "Email", "Signing Key Type", "Encryption Key Type", "ID", "Password"};
-
-		JTable table = new JTable(data, columnNames) {
-			@Override
-			public boolean isCellEditable(int row, int column) {
-				return false;
-			}
-		};
-		TableColumnModel columnModel = table.getColumnModel();
-		columnModel.removeColumn(columnModel.getColumn(columnNames.length - 1));
-		columnModel.removeColumn(columnModel.getColumn(columnNames.length - 2));
-
-		table.addMouseListener(new MouseAdapter() {
-			public void mousePressed(MouseEvent mouseEvent) {
-				JTable table =(JTable) mouseEvent.getSource();
-				Point point = mouseEvent.getPoint();
-				if (mouseEvent.getClickCount() == 2 && table.getSelectedRow() != -1) {
-					int row = table.rowAtPoint(point);
-					String keyId = data[row][columnNames.length - 1];
-					System.out.println(keyId);
-				}
-			}
-		});
-
-		table.setSize(WINDOW_WIDTH, (int) (WINDOW_HEIGHT * 0.7));
-		return new JScrollPane(table, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+	private static JScrollPane getUsersPanel() {
+		return new JScrollPane(getUsersTable(), JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
 				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 	}
 
-	private static JTable getUsersTableTable() {
+	private static JTable getUsersTable() {
+		updateData();
 		JTable table = new JTable(data, columnNames) {
 			@Override
 			public boolean isCellEditable(int row, int column) {
@@ -388,7 +363,7 @@ public class FirstSwingExample {
 	private static void getUsersTableForEncryption() {
 		JDialog dialog = new JDialog();
 
-		JTable table = getUsersTableTable();
+		JTable table = getUsersTable();
 		dialog.add(table, BorderLayout.CENTER);
 
 		JButton submitButton = new JButton("Choose");
@@ -412,7 +387,7 @@ public class FirstSwingExample {
 		JPanel panel = new JPanel();
 		dialog.add(panel);
 
-		JTable table = getUsersTableTable();
+		JTable table = getUsersTable();
 		table.setPreferredSize(new Dimension(300, 500));
 		panel.add(table, BorderLayout.CENTER);
 

@@ -119,7 +119,6 @@ public class FileRepository implements Repository {
 	@Override
 	public void deleteKeyPair(UUID keyId) {
 		File privateKeyFile = new File(getPrivateKeyFilePath(keyId));
-		privateKeyFile.getParentFile().canWrite();
 		File publicKeyFile = new File(getPublicKeyFilePath(keyId));
 
 		if (!privateKeyFile.delete()) {
