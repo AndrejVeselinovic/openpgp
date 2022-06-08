@@ -1,7 +1,6 @@
 package main.algorithms.asymmetric;
 
-import lombok.Getter;
-import main.dtos.KeyType;
+import main.dtos.SymmetricAlgorithmTagsConverter;
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.crypto.CryptoServicesRegistrar;
 import org.bouncycastle.crypto.generators.ElGamalKeyPairGenerator;
@@ -21,16 +20,12 @@ public class ElGamal4096Strategy implements AsymmetricStrategy {
 		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 	}
 
-	@Getter
-	private final KeyType keyType;
-
 	ElGamalKeyGenerationParameters param;
 	ElGamalKeyPairGenerator engine = new ElGamalKeyPairGenerator();
 	SecureRandom random = CryptoServicesRegistrar.getSecureRandom();
 	boolean initialised;
 
-	public ElGamal4096Strategy(KeyType keyType) {
-		this.keyType = keyType;
+	public ElGamal4096Strategy() {
 	}
 
 	@Override
@@ -54,7 +49,12 @@ public class ElGamal4096Strategy implements AsymmetricStrategy {
 		}
 	}
 
-//	@Override
+	@Override
+	public String getKeyType() {
+		return SymmetricAlgorithmTagsConverter.of(PGPPublicKey.ELGAMAL_ENCRYPT);
+	}
+
+	//	@Override
 //	public PGPKeyPair generateKeyPair(int size) {
 //		ElGamalKeyPairGenerator elGamalKeyPairGenerator = new ElGamalKeyPairGenerator();
 ////		elGamalKeyPairGenerator.init(new KeyGenerationParameters(new SecureRandom(), size));

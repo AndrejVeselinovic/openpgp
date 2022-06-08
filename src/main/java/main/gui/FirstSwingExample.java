@@ -6,6 +6,7 @@ import main.algorithms.symmetric.EncryptionAlgorithm;
 import main.dtos.DecryptionInfo;
 import main.dtos.UserKeyInfo;
 import main.repositories.FileRepository;
+import org.bouncycastle.openpgp.PGPException;
 
 import javax.swing.*;
 import javax.swing.table.TableColumnModel;
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.jar.JarEntry;
 import java.util.stream.Collectors;
 
 import static javax.swing.JOptionPane.showMessageDialog;
@@ -26,9 +28,9 @@ import static javax.swing.JOptionPane.showMessageDialog;
 public class FirstSwingExample {
 	private static final OpenPGP OPENPGP_CLIENT = new OpenPGP(new FileRepository());
 	private static final int WINDOW_HEIGHT = 600;
-	private static final int WINDOW_WIDTH = 800;
-	private static final int LOCATION_X = 500;
-	private static final int LOCATION_Y = 300;
+	private static final int WINDOW_WIDTH = 1200;
+	private static final int LOCATION_X = 200;
+	private static final int LOCATION_Y = 150;
 
 	private static final String PATH_TO_KEYS_DIR = "D:/Nedim/ZP/openpgp/keys";
 
@@ -52,8 +54,8 @@ public class FirstSwingExample {
 			UserKeyInfo currentUserKey = userKeys.get(i);
 			data[i][0] = currentUserKey.getUsername();
 			data[i][1] = currentUserKey.getEmail();
-			data[i][2] = currentUserKey.getSignatureKeyType().name();
-			data[i][3] = currentUserKey.getEncryptionKeyType().name();
+			data[i][2] = currentUserKey.getSignatureKeyType();
+			data[i][3] = currentUserKey.getEncryptionKeyType();
 			data[i][4] = currentUserKey.getKeyId().toString();
 			data[i][5] = currentUserKey.getPassword();
 		}
@@ -86,7 +88,8 @@ public class FirstSwingExample {
 		buttonPanel.add(getDeleteKeyPairButton());
 		buttonPanel.add(getEncryptMessageButton());
 		buttonPanel.add(getDecryptMessageButton());
-		buttonPanel.add(getImportButton());
+		buttonPanel.add(getImportPublicKeyButton());
+		buttonPanel.add(getImportSecretKeyButton());
 		buttonPanel.add(getExportButton());
 		return buttonPanel;
 	}
@@ -132,8 +135,74 @@ public class FirstSwingExample {
 		return dialog;
 	}
 
-	private static JButton getImportButton() {
-		return new JButton("Import");
+	private static JButton getImportPublicKeyButton() {
+		JButton button = new JButton("Import Public Key Button");
+		button.addActionListener(event -> {
+			JFileChooser chooser = new JFileChooser();
+			if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+				File selectedFile = chooser.getSelectedFile();
+				try {
+					OPENPGP_CLIENT.importPublicKey(selectedFile);
+					showMessageDialog(null, "Success");
+				} catch (IOException | PGPException e) {
+					showMessageDialog(null, e.getMessage());
+					throw new RuntimeException(e);
+				}
+			}
+			refreshMainPanel();
+		});
+		return button;
+	}
+
+	private static JDialog getImportSecretKeyDialog() {
+		JDialog dialog = new JDialog();
+		JPanel mainPanel = new JPanel();
+		mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+		JPanel panel = new JPanel();
+		dialog.add(mainPanel);
+
+		final AtomicReference<File> selectedFile = new AtomicReference<>();
+		JButton importFileButton = new JButton("Choose File");
+		importFileButton.addActionListener(event -> {
+			JFileChooser chooser = new JFileChooser();
+			if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+				selectedFile.set(chooser.getSelectedFile());
+			}
+		});
+		mainPanel.add(importFileButton);
+
+		JLabel passwordLabel = new JLabel("Enter Password:");
+		panel.add(passwordLabel);
+
+		JTextField passwordTextField = new JTextField(20);
+		panel.add(passwordTextField);
+
+		JButton submitButton = new JButton("Import!");
+		submitButton.addActionListener(event -> {
+			try {
+				OPENPGP_CLIENT.importSecretKey(selectedFile.get(), passwordTextField.getText());
+				showMessageDialog(dialog, "Success");
+			} catch (PGPException | IOException e) {
+				showMessageDialog(dialog, e.getMessage());
+				throw new RuntimeException(e);
+			}
+		});
+		panel.add(submitButton);
+
+		mainPanel.add(panel);
+		dialog.setSize((int) (WINDOW_WIDTH * 0.8), (int) (WINDOW_HEIGHT * 0.7));
+		dialog.setLocation((int) (LOCATION_X * 1.4), (int) (LOCATION_Y * 1.2));
+		return dialog;
+	}
+
+	private static JButton getImportSecretKeyButton() {
+		JButton button = new JButton("Import Secret Key Button");
+		button.addActionListener(event -> {
+			JDialog importSecretKeyDialog = getImportSecretKeyDialog();
+			importSecretKeyDialog.setVisible(true);
+			refreshMainPanel();
+		});
+		return button;
 	}
 
 	private static JButton getDeleteKeyPairButton() {
@@ -449,7 +518,7 @@ public class FirstSwingExample {
 
 		JLabel signerKeyTypeLabel = new JLabel("Signer Key Type Label:");
 		panel.add(signerKeyTypeLabel);
-		JLabel signerKeyType = new JLabel(decryptionInfo.getSigningInfo().getSignatureKeyType().name());
+		JLabel signerKeyType = new JLabel(decryptionInfo.getSigningInfo().getSignatureKeyType());
 		panel.add(signerKeyType);
 
 		if(decryptionInfo.getStatus().equals(DecryptionInfo.Status.FAIL)) {

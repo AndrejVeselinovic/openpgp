@@ -1,8 +1,7 @@
 package main.algorithms.asymmetric;
 
 import lombok.AllArgsConstructor;
-import lombok.Getter;
-import main.dtos.KeyType;
+import main.dtos.SymmetricAlgorithmTagsConverter;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPKeyPair;
 import org.bouncycastle.openpgp.PGPPublicKey;
@@ -20,17 +19,21 @@ public class ElGamalStrategy implements AsymmetricStrategy {
 		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 	}
 
-	@Getter
-	private final KeyType keyType;
+	private static final int algorithmTag = PGPPublicKey.ELGAMAL_ENCRYPT;
 	@Override
 	public PGPKeyPair generateKeyPair(int size) {
 		try {
 			KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("ELGAMAL");
 			keyPairGenerator.initialize(size);
 			KeyPair keyPair = keyPairGenerator.generateKeyPair();
-			return new JcaPGPKeyPair(PGPPublicKey.ELGAMAL_ENCRYPT, keyPair, new Date());
+			return new JcaPGPKeyPair(algorithmTag, keyPair, new Date());
 		} catch (NoSuchAlgorithmException | PGPException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	@Override
+	public String getKeyType() {
+		return SymmetricAlgorithmTagsConverter.of(algorithmTag);
 	}
 }

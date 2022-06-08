@@ -1,8 +1,7 @@
 package main.algorithms.asymmetric;
 
 import lombok.AllArgsConstructor;
-import lombok.Getter;
-import main.dtos.KeyType;
+import main.dtos.SymmetricAlgorithmTagsConverter;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPKeyPair;
 import org.bouncycastle.openpgp.PGPPublicKey;
@@ -16,8 +15,6 @@ import java.util.Date;
 @AllArgsConstructor
 public class DSAStrategy implements AsymmetricStrategy {
 
-	@Getter
-	private final KeyType keyType;
 	@Override
 	public PGPKeyPair generateKeyPair(int size) {
 		try {
@@ -28,5 +25,10 @@ public class DSAStrategy implements AsymmetricStrategy {
 		} catch (NoSuchAlgorithmException | PGPException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	@Override
+	public String getKeyType() {
+		return SymmetricAlgorithmTagsConverter.of(PGPPublicKey.DSA);
 	}
 }

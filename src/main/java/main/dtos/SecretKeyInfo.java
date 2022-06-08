@@ -9,6 +9,6 @@ public class SecretKeyInfo {
 	@Getter
 	private PGPSecretKey secretKey;
 	@Getter
-	private KeyType keyType;
+	private String keyType;
 
 }

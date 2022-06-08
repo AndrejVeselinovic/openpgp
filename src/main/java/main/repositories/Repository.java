@@ -5,6 +5,9 @@ import main.dtos.SecretKeyInfo;
 import main.dtos.UserKeyInfo;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPKeyRingGenerator;
+import org.bouncycastle.openpgp.PGPPublicKey;
+import org.bouncycastle.openpgp.PGPSecretKey;
+import org.bouncycastle.openpgp.jcajce.JcaPGPPublicKeyRingCollection;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -42,9 +45,9 @@ public interface Repository {
 
 	void exportKeyPair(UUID keyId, String newPath) throws IOException;
 
-	void persistPublicKey(byte[] publicKeyBytes, UUID keyUUID) throws IOException;
+	void persistPublicKey(PGPPublicKey signingKey, PGPPublicKey encryptionKey, byte[] bytesToWrite, UUID keyUUID) throws IOException;
 
-	void persistSecretKey(byte[] secretKeyBytes, UUID keyUUID) throws IOException;
+	void persistSecretKey(PGPSecretKey signingKey, PGPSecretKey encryptionKey, byte[] secretKeyBytes, UUID keyUUID, String password) throws IOException;
 
 	Optional<UserKeyInfo> getUserKeyInfoByLongKeyID(long keyId);
 }

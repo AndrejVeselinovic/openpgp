@@ -1,33 +1,26 @@
 package main.repositories;
 
-import main.dtos.KeyType;
 import main.dtos.PublicKeyInfo;
 import main.dtos.SecretKeyInfo;
+import main.dtos.SymmetricAlgorithmTagsConverter;
 import main.dtos.UserKeyInfo;
 import org.bouncycastle.bcpg.ArmoredInputStream;
 import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPKeyRingGenerator;
 import org.bouncycastle.openpgp.PGPPublicKey;
-import org.bouncycastle.openpgp.PGPPublicKeyRing;
 import org.bouncycastle.openpgp.PGPSecretKey;
 import org.bouncycastle.openpgp.jcajce.JcaPGPPublicKeyRing;
-import org.bouncycastle.openpgp.jcajce.JcaPGPPublicKeyRingCollection;
 import org.bouncycastle.openpgp.jcajce.JcaPGPSecretKeyRing;
-import org.bouncycastle.openpgp.jcajce.JcaPGPSecretKeyRingCollection;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileDescriptor;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -85,14 +78,7 @@ public class FileRepository implements Repository {
 	public void persistUserKeyInfo(UserKeyInfo userKeyInfo) {
 		try {
 			try (FileOutputStream usersOutput = new FileOutputStream(USERS_FILE, true)) {
-				String usersWrite = String.format("%s,%s,%s,%s,%s,%s\n",
-						userKeyInfo.getUsername(),
-						userKeyInfo.getPassword(),
-						userKeyInfo.getEmail(),
-						userKeyInfo.getKeyId(),
-						userKeyInfo.getSignatureKeyType(),
-						userKeyInfo.getEncryptionKeyType());
-				usersOutput.write(usersWrite.getBytes());
+				usersOutput.write(userKeyInfo.toString().getBytes());
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
@@ -102,7 +88,7 @@ public class FileRepository implements Repository {
 	@Override
 	public List<UserKeyInfo> getUsers() {
 		try (BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE))) {
-			return bufferedReader.lines().map(this::fromLine).collect(Collectors.toList());
+			return bufferedReader.lines().filter(line->!line.equals("")).map(this::fromLine).collect(Collectors.toList());
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -166,7 +152,6 @@ public class FileRepository implements Repository {
 
 	private PublicKeyInfo getPublicKey(UUID keyId, int keyType) {
 		byte[] bytes;
-		KeyType keyInfoType = null;
 		PGPPublicKey encryptionKey;
 
 		try {
@@ -184,28 +169,27 @@ public class FileRepository implements Repository {
 			throw new RuntimeException(e);
 		}
 
-		try (BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE))) {
-			List<String> lines = bufferedReader.lines().collect(Collectors.toList());
-			for (String line : lines) {
-				String[] args = line.split(",");
-				if (args[3].equals(keyId.toString())) {
-					keyInfoType = KeyType.valueOf(args[4]);
-					break;
-				}
-			}
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-
-		if (keyInfoType == null) {
-			throw new RuntimeException("couldnt find public key with key id: " + keyId);
-		}
-		return new PublicKeyInfo(encryptionKey, keyInfoType);
+//		try (BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE))) {
+//			List<String> lines = bufferedReader.lines().collect(Collectors.toList());
+//			for (String line : lines) {
+//				String[] args = line.split(",");
+//				if (args[3].equals(keyId.toString())) {
+//					keyInfoType = KeyType.valueOf(args[4]);
+//					break;
+//				}
+//			}
+//		} catch (IOException e) {
+//			throw new RuntimeException(e);
+//		}
+//
+//		if (keyInfoType == null) {
+//			throw new RuntimeException("couldnt find public key with key id: " + keyId);
+//		}
+		return new PublicKeyInfo(encryptionKey, SymmetricAlgorithmTagsConverter.of(encryptionKey.getAlgorithm()));
 	}
 
 	private SecretKeyInfo getPrivateKey(UUID keyId, int keyType) {
 		byte[] bytes;
-		KeyType keyInfoType = null;
 		PGPSecretKey encryptionKey;
 
 		try {
@@ -223,23 +207,23 @@ public class FileRepository implements Repository {
 			throw new RuntimeException(e);
 		}
 
-		try (BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE))) {
-			List<String> lines = bufferedReader.lines().collect(Collectors.toList());
-			for (String line : lines) {
-				String[] args = line.split(",");
-				if (args[3].equals(keyId.toString())) {
-					keyInfoType = KeyType.valueOf(args[4]);
-					break;
-				}
-			}
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-
-		if (keyInfoType == null) {
-			throw new RuntimeException("couldnt find private key with key id: " + keyId);
-		}
-		return new SecretKeyInfo(encryptionKey, keyInfoType);
+//		try (BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE))) {
+//			List<String> lines = bufferedReader.lines().collect(Collectors.toList());
+//			for (String line : lines) {
+//				String[] args = line.split(",");
+//				if (args[3].equals(keyId.toString())) {
+//					keyInfoType = KeyType.valueOf(args[4]);
+//					break;
+//				}
+//			}
+//		} catch (IOException e) {
+//			throw new RuntimeException(e);
+//		}
+//
+//		if (keyInfoType == null) {
+//			throw new RuntimeException("couldnt find private key with key id: " + keyId);
+//		}
+		return new SecretKeyInfo(encryptionKey, SymmetricAlgorithmTagsConverter.of(encryptionKey.getPublicKey().getAlgorithm()));
 	}
 
 	@Override
@@ -331,16 +315,107 @@ public class FileRepository implements Repository {
 		fileOutputStream.close();
 	}
 
-	@Override
-	public void persistPublicKey(byte[] publicKeyBytes, UUID keyUUID) throws IOException {
-		String publicKeyFilePath = getPublicKeyFilePath(keyUUID);
-		persistKeyFile(publicKeyBytes, publicKeyFilePath);
+	/**
+	 * @param  password  if empty string then its public key
+	 */
+
+	private void upsertKeyFlag(PGPPublicKey signingKey, PGPPublicKey encryptionKey, UUID keyId, String password) {
+		boolean keyFound = false;
+		List<String> lines = new ArrayList<>();
+		try (BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE))) {
+			while (true) {
+				String line = bufferedReader.readLine();
+				if (line == null || line.equals("")) {
+					break;
+				}
+				UserKeyInfo userInfo = UserKeyInfo.of(line);
+				if (userInfo.getKeyId().equals(keyId)) {
+					if(password.equals("")){
+						userInfo.setHasPublicKey(true);
+					} else {
+						userInfo.setHasSecretKey(true);
+						userInfo.setPassword(password);
+					}
+					lines.add(userInfo.toString());
+					keyFound = true;
+					continue;
+				}
+
+				lines.add(line);
+			}
+
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+
+		if(!keyFound) {
+			Iterator<String> userIDsIterator = signingKey.getUserIDs();
+
+			String username = "";
+			if(userIDsIterator.hasNext()) {
+				username = userIDsIterator.next();
+			}
+
+			String email = "";
+			if(userIDsIterator.hasNext()) {
+				email = userIDsIterator.next();
+			}
+
+			boolean hasPublicKey;
+			boolean hasSecretKey;
+			if(password.equals("")) {
+				hasPublicKey = true;
+				hasSecretKey = false;
+			} else {
+				hasPublicKey = false;
+				hasSecretKey = true;
+			}
+
+			UserKeyInfo userKeyInfo = new UserKeyInfo(
+					username,
+					password,
+					email,
+					keyId,
+					SymmetricAlgorithmTagsConverter.of(signingKey.getAlgorithm()),
+					SymmetricAlgorithmTagsConverter.of(encryptionKey.getAlgorithm()),
+					hasPublicKey,
+					hasSecretKey,
+					signingKey.getKeyID());
+			lines.add(userKeyInfo.toString());
+		}
+
+		try {
+			Files.delete(Path.of(USERS_FILE));
+			BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(USERS_FILE));
+			for (String line: lines)
+				bufferedWriter.write(line + "\n");
+
+			bufferedWriter.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private void upsertPublicKeyFlag(PGPPublicKey signingKey, PGPPublicKey encryptionKey, UUID keyId) {
+		upsertKeyFlag(signingKey, encryptionKey, keyId, "");
+	}
+
+	private void upsertSecretKeyFlag(PGPPublicKey signingKey, PGPPublicKey encryptionKey, UUID keyId, String password) {
+		upsertKeyFlag(signingKey, encryptionKey, keyId, password);
 	}
 
 	@Override
-	public void persistSecretKey(byte[] secretKeyBytes, UUID keyUUID) throws IOException {
+	public void persistPublicKey(PGPPublicKey signingKey, PGPPublicKey encryptionKey, byte[] bytesToWrite, UUID keyUUID) throws IOException {
+		String publicKeyFilePath = getPublicKeyFilePath(keyUUID);
+		persistKeyFile(bytesToWrite, publicKeyFilePath);
+		upsertPublicKeyFlag(signingKey, encryptionKey, keyUUID);
+	}
+
+	@Override
+	public void persistSecretKey(PGPSecretKey signingKey, PGPSecretKey encryptionKey, byte[] secretKeyBytes, UUID keyUUID, String password) throws IOException {
 		String secretKeyFilePath = getPrivateKeyFilePath(keyUUID);
 		persistKeyFile(secretKeyBytes, secretKeyFilePath);
+		upsertSecretKeyFlag(signingKey.getPublicKey(), encryptionKey.getPublicKey(), keyUUID, password);
 	}
 
 	@Override
@@ -395,15 +470,23 @@ public class FileRepository implements Repository {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
 	}
 
 	private UserKeyInfo fromLine(String line) {
 		String[] args = line.split(",");
-		if (args.length != 7) {
+		if (args.length != 9) {
 			throw new RuntimeException("Error parsing user from file, line: " + line);
 		}
 
-		return new UserKeyInfo(args[0], args[1], args[2], UUID.fromString(args[3]), KeyType.valueOf(args[4]), KeyType.valueOf(args[5]), false, false, Long.parseLong(args[6]));
+		return new UserKeyInfo(
+				args[0],
+				args[1],
+				args[2],
+				UUID.fromString(args[3]),
+				args[4],
+				args[5],
+				args[6].equals("true"),
+				args[7].equals("true"),
+				Long.parseLong(args[8]));
 	}
 }

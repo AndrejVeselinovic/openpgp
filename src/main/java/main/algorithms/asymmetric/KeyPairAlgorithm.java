@@ -2,21 +2,15 @@ package main.algorithms.asymmetric;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import main.dtos.KeyType;
 import org.bouncycastle.openpgp.PGPKeyPair;
-
-import java.security.KeyPair;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 
 @AllArgsConstructor
 public enum KeyPairAlgorithm {
-	DSA_1024(1024, new DSAStrategy(KeyType.DSA1024)),
-	DSA_2048(2048, new DSAStrategy(KeyType.DSA2048)),
-	ElGamal1024(1024, new ElGamalStrategy(KeyType.ElGamal1024)),
-	ElGamal2048(2048, new ElGamalStrategy(KeyType.ElGamal2048)),
-	ElGamal4096(4096, new ElGamal4096Strategy(KeyType.ElGamal4096));
+	DSA_1024(1024, new DSAStrategy()),
+	DSA_2048(2048, new DSAStrategy()),
+	ElGamal1024(1024, new ElGamalStrategy()),
+	ElGamal2048(2048, new ElGamalStrategy()),
+	ElGamal4096(4096, new ElGamal4096Strategy());
 
 	private final int size;
 	@Getter
@@ -26,7 +20,7 @@ public enum KeyPairAlgorithm {
 		return this.asymmetricStrategy.generateKeyPair(this.size);
 	}
 
-	public KeyType getKeyType(){
+	public String getKeyType(){
 		return this.asymmetricStrategy.getKeyType();
 	}
 

@@ -16,8 +16,11 @@ import org.bouncycastle.openpgp.PGPKeyRingGenerator;
 import org.bouncycastle.openpgp.PGPPrivateKey;
 import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.PGPPublicKeyRing;
+import org.bouncycastle.openpgp.PGPSecretKey;
+import org.bouncycastle.openpgp.PGPSecretKeyRing;
 import org.bouncycastle.openpgp.PGPSignature;
 import org.bouncycastle.openpgp.jcajce.JcaPGPPublicKeyRingCollection;
+import org.bouncycastle.openpgp.jcajce.JcaPGPSecretKeyRingCollection;
 import org.bouncycastle.openpgp.operator.PGPDigestCalculator;
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPContentSignerBuilder;
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPDigestCalculatorProviderBuilder;
@@ -162,7 +165,7 @@ public class OpenPGP {
 		}
 		fileInputStream.close();
 		if(signingKey == null || encryptionKey == null) {
-			throw new RuntimeException("Error while");
+			throw new RuntimeException("Error while importing public key: couldnt find signing or encryption key");
 		}
 
 		long keyID = signingKey.getKeyID();
@@ -173,13 +176,57 @@ public class OpenPGP {
 		} else {
 			keyUUID = UUID.randomUUID();
 		}
-		repository.persistPublicKey(pgpPub.getEncoded(), keyUUID);
+		repository.persistPublicKey(signingKey, encryptionKey, pgpPub.getEncoded(), keyUUID);
+	}
+
+	public void importSecretKey(File inputFile, String password) throws PGPException, IOException {
+		FileInputStream fileInputStream = new FileInputStream(inputFile);
+		ArmoredInputStream armoredInputStream = new ArmoredInputStream(fileInputStream);
+		InputStream in = new ByteArrayInputStream(armoredInputStream.readAllBytes());
+		in = org.bouncycastle.openpgp.PGPUtil.getDecoderStream(in);
+
+		JcaPGPSecretKeyRingCollection pgpSecret = new JcaPGPSecretKeyRingCollection(in);
+		in.close();
+
+		PGPSecretKey signingKey = null;
+		PGPSecretKey encryptionKey = null;
+		Iterator<PGPSecretKeyRing> rIt = pgpSecret.getKeyRings();
+		outerWhile: while (signingKey == null && rIt.hasNext())
+		{
+			PGPSecretKeyRing kRing = rIt.next();
+			Iterator<PGPSecretKey> kIt = kRing.getSecretKeys();
+			while (kIt.hasNext())
+			{
+				PGPSecretKey key = kIt.next();
+
+				if(key.isMasterKey()) {
+					signingKey = key;
+				} else {
+					encryptionKey = key;
+					break outerWhile;
+				}
+			}
+		}
+		fileInputStream.close();
+		if(signingKey == null || encryptionKey == null) {
+			throw new RuntimeException("Error while importing secret key: couldnt find signing or encryption key");
+		}
+
+		long keyID = signingKey.getKeyID();
+		UUID keyUUID;
+		Optional<UserKeyInfo> userKeyInfoByLongKeyID = repository.getUserKeyInfoByLongKeyID(keyID);
+		if(userKeyInfoByLongKeyID.isPresent()) {
+			keyUUID = userKeyInfoByLongKeyID.get().getKeyId();
+		} else {
+			keyUUID = UUID.randomUUID();
+		}
+		repository.persistSecretKey(signingKey, encryptionKey, pgpSecret.getEncoded(), keyUUID, password);
 	}
 
 	public static void main(String[] args) throws Exception {
 		OpenPGP openPGP = new OpenPGP(new FileRepository());
 
-		openPGP.generateKeyPair("andrej", "email@gmail.com", "123", KeyPairAlgorithm.DSA_1024, KeyPairAlgorithm.ElGamal4096);
+//		openPGP.generateKeyPair("andrej", "email@gmail.com", "123", KeyPairAlgorithm.DSA_1024, KeyPairAlgorithm.ElGamal4096);
 //		openPGP.generateKeyPair("andrej", "email@gmail.com", "123", KeyPairAlgorithm.DSA_2048, KeyPairAlgorithm.ElGamal2048);
 //		openPGP.getUserKeys().forEach(System.out::println);
 //		openPGP.deleteKeyPair(UUID.fromString("44684ede-3545-4d09-b294-98802a073879"));
@@ -198,5 +245,7 @@ public class OpenPGP {
 //
 //		System.out.println(openPGP.repository.getPasswordForKeyId(
 //				UUID.fromString("adaaa6fc-d1ea-46da-9a7c-145dd9c48731")));
+		openPGP.importPublicKey(new File("test.priv.asc"));
+//		openPGP.importSecretKey(new File("test.priv.asc"), "123");
 	}
 }
