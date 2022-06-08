@@ -78,13 +78,15 @@ public class FileRepository implements Repository {
 	public void persistUserKeyInfo(UserKeyInfo userKeyInfo) {
 		try {
 			try (FileOutputStream usersOutput = new FileOutputStream(USERS_FILE, true)) {
-				String usersWrite = String.format("%s,%s,%s,%s,%s,%s\n",
+				String usersWrite = String.format("%s,%s,%s,%s,%s,%s,%s,%s\n",
 						userKeyInfo.getUsername(),
 						userKeyInfo.getPassword(),
 						userKeyInfo.getEmail(),
 						userKeyInfo.getKeyId(),
 						userKeyInfo.getSignatureKeyType(),
-						userKeyInfo.getEncryptionKeyType());
+						userKeyInfo.getEncryptionKeyType(),
+						userKeyInfo.isHasPublicKey(),
+						userKeyInfo.isHasSecretKey());
 				usersOutput.write(usersWrite.getBytes());
 			}
 		} catch (IOException e) {
@@ -357,15 +359,15 @@ public class FileRepository implements Repository {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
 	}
 
 	private UserKeyInfo fromLine(String line) {
 		String[] args = line.split(",");
-		if (args.length != 6) {
+		if (args.length != 8) {
 			throw new RuntimeException("Error parsing user from file, line: " + line);
 		}
 
-		return new UserKeyInfo(args[0], args[1], args[2], UUID.fromString(args[3]), KeyType.valueOf(args[4]), KeyType.valueOf(args[5]), false, false);
+		return new UserKeyInfo(args[0], args[1], args[2], UUID.fromString(args[3]), KeyType.valueOf(args[4]),
+				KeyType.valueOf(args[5]), Boolean.parseBoolean(args[6]), Boolean.parseBoolean(args[7]));
 	}
 }
