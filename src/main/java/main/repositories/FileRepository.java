@@ -98,6 +98,7 @@ public class FileRepository implements Repository {
 	public boolean checkPassword(String username, String password) {
 		try (BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE))) {
 			return bufferedReader.lines()
+					.filter(line -> !line.equals(""))
 					.map(this::fromLine)
 					.anyMatch(userInfo -> userInfo.getUsername().equals(username) && userInfo.getPassword()
 							.equals(password));
@@ -387,8 +388,13 @@ public class FileRepository implements Repository {
 		try {
 			Files.delete(Path.of(USERS_FILE));
 			BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(USERS_FILE));
-			for (String line: lines)
-				bufferedWriter.write(line + "\n");
+			for (int i = 0; i < lines.size(); i++) {
+				String line = lines.get(i);
+				bufferedWriter.write(line);
+				if(i < lines.size() - 1) {
+					bufferedWriter.write("\n");
+				}
+			}
 
 			bufferedWriter.close();
 		} catch (IOException e) {
@@ -463,8 +469,13 @@ public class FileRepository implements Repository {
 		try {
 			Files.delete(Path.of(USERS_FILE));
 			BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(USERS_FILE));
-			for (String line: lines)
-				bufferedWriter.write(line + "\n");
+			for (int i = 0; i < lines.size(); i++) {
+				String line = lines.get(i);
+				bufferedWriter.write(line);
+				if(i < lines.size() - 1) {
+					bufferedWriter.write("\n");
+				}
+			}
 
 			bufferedWriter.close();
 		} catch (IOException e) {
