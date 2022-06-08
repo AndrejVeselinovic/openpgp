@@ -50,4 +50,8 @@ public interface Repository {
 	void persistSecretKey(PGPSecretKey signingKey, PGPSecretKey encryptionKey, byte[] secretKeyBytes, UUID keyUUID, String password) throws IOException;
 
 	Optional<UserKeyInfo> getUserKeyInfoByLongKeyID(long keyId);
+
+	boolean hasLoadedPrivateKey(UUID keyId);
+
+	boolean hasLoadedPublicKey(UUID keyId);
 }

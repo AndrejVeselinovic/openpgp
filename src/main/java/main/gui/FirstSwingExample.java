@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.jar.JarEntry;
 import java.util.stream.Collectors;
 
 import static javax.swing.JOptionPane.showMessageDialog;
@@ -34,7 +33,8 @@ public class FirstSwingExample {
 
 	private static final String PATH_TO_KEYS_DIR = "D:/Nedim/ZP/openpgp/keys";
 
-	private static final String[] columnNames = new String[]{"Name", "Email", "Signing Key Type", "Encryption Key Type", "ID", "Password"};
+	private static final String[] columnNames = new String[]{"Name", "Email", "Signing Key Type",
+			"Encryption Key Type", "Has public key", "Has private key", "ID", "Password"};
 	private static final int IdColumnIndex = columnNames.length - 2;
 	private static String[][] data;
 	private static final AtomicReference<Collection<UUID>> publicKeysForEncryption = new AtomicReference<>();
@@ -56,10 +56,13 @@ public class FirstSwingExample {
 			data[i][1] = currentUserKey.getEmail();
 			data[i][2] = currentUserKey.getSignatureKeyType();
 			data[i][3] = currentUserKey.getEncryptionKeyType();
-			data[i][4] = currentUserKey.getKeyId().toString();
-			data[i][5] = currentUserKey.getPassword();
+			data[i][4] = String.valueOf(currentUserKey.isHasPublicKey());
+			data[i][5] = String.valueOf(currentUserKey.isHasSecretKey());
+			data[i][6] = currentUserKey.getKeyId().toString();
+			data[i][7] = currentUserKey.getPassword();
 		}
 	}
+
 	public static void main(String[] args) {
 		frame = getMainFrame();
 
@@ -96,8 +99,11 @@ public class FirstSwingExample {
 
 	private static JButton getExportButton() {
 		JButton exportButton = new JButton("Export");
-		AtomicReference<JDialog> dialog = new AtomicReference<>(getExportDialog());
-		exportButton.addActionListener(event -> dialog.get().setVisible(true));
+		exportButton.addActionListener(event -> {
+			AtomicReference<JDialog> dialog = new AtomicReference<>(getExportDialog());
+			dialog.get().setVisible(true);
+		});
+
 		return exportButton;
 	}
 
@@ -207,8 +213,10 @@ public class FirstSwingExample {
 
 	private static JButton getDeleteKeyPairButton() {
 		JButton deletePrivateKeyButton = new JButton("Delete Key Pair Button");
-		AtomicReference<JDialog> dialog = new AtomicReference<>(getDeleteKeyPairDialog());
-		deletePrivateKeyButton.addActionListener(event -> dialog.get().setVisible(true));
+		deletePrivateKeyButton.addActionListener(event -> {
+			AtomicReference<JDialog> dialog = new AtomicReference<>(getDeleteKeyPairDialog());
+			dialog.get().setVisible(true);
+		});
 		return deletePrivateKeyButton;
 	}
 
@@ -233,8 +241,8 @@ public class FirstSwingExample {
 				return;
 			}
 
-			String keyId = (String) table.getModel().getValueAt(selectedRow, 4);
-			String password = (String) table.getModel().getValueAt(selectedRow, 5);
+			String keyId = (String) table.getModel().getValueAt(selectedRow, 6);
+			String password = (String) table.getModel().getValueAt(selectedRow, 7);
 
 			if (!password.equals(passwordTextField.getText())){
 				showMessageDialog(null, "Wrong password!");
@@ -343,6 +351,7 @@ public class FirstSwingExample {
 						passwordPKTextField.getText(), (KeyPairAlgorithm) signingAlgorithms.getSelectedItem(),
 						(KeyPairAlgorithm) encryptionAlgorithms.getSelectedItem());
 				refreshMainPanel();
+				dialog.dispose();
 			}
 		});
 		return generateButton;
@@ -370,8 +379,11 @@ public class FirstSwingExample {
 
 	private static JButton getEncryptMessageButton() {
 		JButton encryptButton = new JButton("Encrypt");
-		JDialog dialog = getGenerateEncryptDialog();
-		encryptButton.addActionListener(event -> dialog.setVisible(true));
+
+		encryptButton.addActionListener(event -> {
+			JDialog dialog = getGenerateEncryptDialog();
+			dialog.setVisible(true);
+		});
 		return encryptButton;
 	}
 
@@ -449,8 +461,10 @@ public class FirstSwingExample {
 
 	private static JButton getDecryptMessageButton(){
 		JButton decryptButton =  new JButton("Decrypt");
-		JDialog dialog = getDecryptDialog();
-		decryptButton.addActionListener(event -> dialog.setVisible(true));
+		decryptButton.addActionListener(event -> {
+			JDialog dialog = getDecryptDialog();
+			dialog.setVisible(true);
+		});
 		return decryptButton;
 	}
 
