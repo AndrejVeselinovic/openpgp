@@ -49,18 +49,23 @@ public class FirstSwingExample {
 
 	private static void updateData() {
 		List<UserKeyInfo> userKeys = OPENPGP_CLIENT.getUserKeys();
-		data = new String[userKeys.size()][columnNames.length];
-		for (int i = 0; i < userKeys.size(); i++) {
-			UserKeyInfo currentUserKey = userKeys.get(i);
-			data[i][0] = currentUserKey.getUsername();
-			data[i][1] = currentUserKey.getEmail();
-			data[i][2] = currentUserKey.getSignatureKeyType();
-			data[i][3] = currentUserKey.getEncryptionKeyType();
-			data[i][4] = String.valueOf(currentUserKey.isHasPublicKey());
-			data[i][5] = String.valueOf(currentUserKey.isHasSecretKey());
-			data[i][6] = currentUserKey.getKeyId().toString();
-			data[i][7] = currentUserKey.getPassword();
+		data = getDataFromUsers(userKeys);
+	}
+
+	private static String[][] getDataFromUsers(List<UserKeyInfo> users) {
+		String[][] localData = new String[users.size()][columnNames.length];
+		for (int i = 0; i < users.size(); i++) {
+			UserKeyInfo currentUserKey = users.get(i);
+			localData[i][0] = currentUserKey.getUsername();
+			localData[i][1] = currentUserKey.getEmail();
+			localData[i][2] = currentUserKey.getSignatureKeyType();
+			localData[i][3] = currentUserKey.getEncryptionKeyType();
+			localData[i][4] = String.valueOf(currentUserKey.isHasPublicKey());
+			localData[i][5] = String.valueOf(currentUserKey.isHasSecretKey());
+			localData[i][6] = currentUserKey.getKeyId().toString();
+			localData[i][7] = currentUserKey.getPassword();
 		}
+		return localData;
 	}
 
 	public static void main(String[] args) {
@@ -557,8 +562,7 @@ public class FirstSwingExample {
 				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 	}
 
-	private static JTable getUsersTable() {
-		updateData();
+	private static JTable getUsersTable(String[][] data) {
 		JTable table = new JTable(data, columnNames) {
 			@Override
 			public boolean isCellEditable(int row, int column) {
@@ -572,10 +576,20 @@ public class FirstSwingExample {
 		return table;
 	}
 
+	private static JTable getUsersTable() {
+		updateData();
+		return getUsersTable(data);
+	}
+
 	private static void getUsersTableForEncryption() {
 		JDialog dialog = new JDialog();
 
-		JTable table = getUsersTable();
+		List<UserKeyInfo> users = OPENPGP_CLIENT.getUserKeys()
+				.stream()
+				.filter(UserKeyInfo::isHasPublicKey)
+				.collect(Collectors.toList());
+		String[][] localData = getDataFromUsers(users);
+		JTable table = getUsersTable(localData);
 		dialog.add(table, BorderLayout.CENTER);
 
 		JButton submitButton = new JButton("Choose");
@@ -600,7 +614,13 @@ public class FirstSwingExample {
 		panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 		dialog.add(panel);
 
-		JTable table = getUsersTable();
+		List<UserKeyInfo> users = OPENPGP_CLIENT.getUserKeys()
+				.stream()
+				.filter(UserKeyInfo::isHasSecretKey)
+				.collect(Collectors.toList());
+		String[][] localData = getDataFromUsers(users);
+
+		JTable table = getUsersTable(localData);
 		JScrollPane tableContainer = new JScrollPane(table);
 		panel.add(tableContainer);
 
