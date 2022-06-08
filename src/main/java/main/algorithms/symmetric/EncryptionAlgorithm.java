@@ -22,6 +22,7 @@ import org.bouncycastle.util.Arrays;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.security.Security;
 import java.util.Collection;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -37,6 +38,7 @@ public enum EncryptionAlgorithm {
 	private static final Repository repository = new FileRepository();
 
 	private static PGPPrivateKey fromPGPSecretKey(PGPSecretKey secretKey, String password) {
+		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 		try {
 			return secretKey.extractPrivateKey(
 					new JcePBESecretKeyDecryptorBuilder().setProvider(BouncyCastleProvider.PROVIDER_NAME)
@@ -51,13 +53,11 @@ public enum EncryptionAlgorithm {
 			throws IOException, PGPException, GeneralSecurityException {
 		byte[] bytesToEncrypt = message.getBytes();
 
-		PGPPrivateKey pgpPrivateKey;
 		if (keyToSignMessageWith != null) {
 			SecretKeyInfo secretSigningKeyInfo = repository.getSecretSigningKey(keyToSignMessageWith);
-			pgpPrivateKey = fromPGPSecretKey(secretSigningKeyInfo.getSecretKey(), signingKeyPassword);
+			PGPPrivateKey pgpPrivateKey = fromPGPSecretKey(secretSigningKeyInfo.getSecretKey(), signingKeyPassword);
 			bytesToEncrypt = PGPSign.sign(bytesToEncrypt, pgpPrivateKey);
-			bytesToEncrypt = Arrays.concatenate(keyToSignMessageWith.toString().getBytes(), bytesToEncrypt);
-			bytesToEncrypt = Arrays.concatenate(SIGNATURE_TAG.getBytes(), bytesToEncrypt);
+			bytesToEncrypt = prependSignatureTag(keyToSignMessageWith, bytesToEncrypt);
 		}
 
 		int algorithmTag = this.symmetricEncryptionStrategy.getSymmetricKeyAlgorithmTag();
@@ -70,6 +70,12 @@ public enum EncryptionAlgorithm {
 		if (shouldEncode) {
 			bytesToEncrypt = Base64.encodeBase64(bytesToEncrypt);
 		}
+		return bytesToEncrypt;
+	}
+
+	private byte[] prependSignatureTag(UUID keyToSignMessageWith, byte[] bytesToEncrypt) {
+		bytesToEncrypt = Arrays.concatenate(keyToSignMessageWith.toString().getBytes(), bytesToEncrypt);
+		bytesToEncrypt = Arrays.concatenate(SIGNATURE_TAG.getBytes(), bytesToEncrypt);
 		return bytesToEncrypt;
 	}
 
