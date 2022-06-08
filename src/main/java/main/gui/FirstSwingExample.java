@@ -97,8 +97,11 @@ public class FirstSwingExample {
 
 	private static JButton getExportButton() {
 		JButton exportButton = new JButton("Export");
-		AtomicReference<JDialog> dialog = new AtomicReference<>(getExportDialog());
-		exportButton.addActionListener(event -> dialog.get().setVisible(true));
+		exportButton.addActionListener(event -> {
+			AtomicReference<JDialog> dialog = new AtomicReference<>(getExportDialog());
+			dialog.get().setVisible(true);
+		});
+
 		return exportButton;
 	}
 
@@ -142,8 +145,10 @@ public class FirstSwingExample {
 
 	private static JButton getDeleteKeyPairButton() {
 		JButton deletePrivateKeyButton = new JButton("Delete Key Pair Button");
-		AtomicReference<JDialog> dialog = new AtomicReference<>(getDeleteKeyPairDialog());
-		deletePrivateKeyButton.addActionListener(event -> dialog.get().setVisible(true));
+		deletePrivateKeyButton.addActionListener(event -> {
+			AtomicReference<JDialog> dialog = new AtomicReference<>(getDeleteKeyPairDialog());
+			dialog.get().setVisible(true);
+		});
 		return deletePrivateKeyButton;
 	}
 
@@ -306,8 +311,11 @@ public class FirstSwingExample {
 
 	private static JButton getEncryptMessageButton() {
 		JButton encryptButton = new JButton("Encrypt");
-		JDialog dialog = getGenerateEncryptDialog();
-		encryptButton.addActionListener(event -> dialog.setVisible(true));
+
+		encryptButton.addActionListener(event -> {
+			JDialog dialog = getGenerateEncryptDialog();
+			dialog.setVisible(true);
+		});
 		return encryptButton;
 	}
 
@@ -385,8 +393,10 @@ public class FirstSwingExample {
 
 	private static JButton getDecryptMessageButton(){
 		JButton decryptButton =  new JButton("Decrypt");
-		JDialog dialog = getDecryptDialog();
-		decryptButton.addActionListener(event -> dialog.setVisible(true));
+		decryptButton.addActionListener(event -> {
+			JDialog dialog = getDecryptDialog();
+			dialog.setVisible(true);
+		});
 		return decryptButton;
 	}
 
