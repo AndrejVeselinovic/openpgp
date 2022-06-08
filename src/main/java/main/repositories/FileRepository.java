@@ -18,7 +18,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class FileRepository implements Repository {
 	private static final String KEY_RING_DIRECTORY = "keys/";
@@ -47,11 +46,17 @@ public class FileRepository implements Repository {
 	public UUID persistKeyPair(PGPKeyRingGenerator keyRingGenerator) {
 		UUID keyId = UUID.randomUUID();
 		try {
-			try (ArmoredOutputStream privateOutput = new ArmoredOutputStream(new FileOutputStream(getPrivateKeyFilePath(keyId)));
-				 ArmoredOutputStream publicOutput = new ArmoredOutputStream(new FileOutputStream(getPublicKeyFilePath(keyId)))) {
-				keyRingGenerator.generatePublicKeyRing().encode(publicOutput);
-				keyRingGenerator.generateSecretKeyRing().encode(privateOutput);
-			}
+			FileOutputStream outputStream = new FileOutputStream(getPrivateKeyFilePath(keyId));
+			ArmoredOutputStream privateOutput = new ArmoredOutputStream(outputStream);
+
+			FileOutputStream outputStream1 = new FileOutputStream(getPublicKeyFilePath(keyId));
+			ArmoredOutputStream publicOutput = new ArmoredOutputStream(outputStream1);
+
+			keyRingGenerator.generatePublicKeyRing().encode(publicOutput);
+			keyRingGenerator.generateSecretKeyRing().encode(privateOutput);
+
+			outputStream.close();
+			outputStream1.close();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -316,9 +321,6 @@ public class FileRepository implements Repository {
 				lines.add(line);
 			}
 
-//
-//			File newUsersFile = new File(tempFileName);
-//			newUsersFile.renameTo(initialUsersFile);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -327,7 +329,7 @@ public class FileRepository implements Repository {
 			Files.delete(Path.of(USERS_FILE));
 			BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(USERS_FILE));
 			for (String line: lines)
-				bufferedWriter.write(line);
+				bufferedWriter.write(line + "\n");
 
 			bufferedWriter.close();
 		} catch (IOException e) {
