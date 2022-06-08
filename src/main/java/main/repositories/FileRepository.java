@@ -46,11 +46,17 @@ public class FileRepository implements Repository {
 	public UUID persistKeyPair(PGPKeyRingGenerator keyRingGenerator) {
 		UUID keyId = UUID.randomUUID();
 		try {
-			try (ArmoredOutputStream privateOutput = new ArmoredOutputStream(new FileOutputStream(getPrivateKeyFilePath(keyId)));
-				 ArmoredOutputStream publicOutput = new ArmoredOutputStream(new FileOutputStream(getPublicKeyFilePath(keyId)))) {
-				keyRingGenerator.generatePublicKeyRing().encode(publicOutput);
-				keyRingGenerator.generateSecretKeyRing().encode(privateOutput);
-			}
+			FileOutputStream outputStream = new FileOutputStream(getPrivateKeyFilePath(keyId));
+			ArmoredOutputStream privateOutput = new ArmoredOutputStream(outputStream);
+
+			FileOutputStream outputStream1 = new FileOutputStream(getPublicKeyFilePath(keyId));
+			ArmoredOutputStream publicOutput = new ArmoredOutputStream(outputStream1);
+
+			keyRingGenerator.generatePublicKeyRing().encode(publicOutput);
+			keyRingGenerator.generateSecretKeyRing().encode(privateOutput);
+
+			outputStream.close();
+			outputStream1.close();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
