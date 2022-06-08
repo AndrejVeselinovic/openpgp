@@ -171,7 +171,7 @@ public class FirstSwingExample {
 		JButton importFileButton = new JButton("Choose File");
 		importFileButton.addActionListener(event -> {
 			JFileChooser chooser = new JFileChooser();
-			if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+			if (chooser.showOpenDialog(dialog) == JFileChooser.APPROVE_OPTION) {
 				selectedFile.set(chooser.getSelectedFile());
 			}
 		});
@@ -189,7 +189,7 @@ public class FirstSwingExample {
 				OPENPGP_CLIENT.importSecretKey(selectedFile.get(), passwordTextField.getText());
 				showMessageDialog(dialog, "Success");
 				refreshMainPanel();
-			} catch (PGPException | IOException e) {
+			} catch (Exception e) {
 				showMessageDialog(dialog, e.getMessage());
 				throw new RuntimeException(e);
 			}

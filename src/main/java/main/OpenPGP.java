@@ -9,6 +9,7 @@ import main.repositories.FileRepository;
 import main.repositories.Repository;
 import org.bouncycastle.bcpg.ArmoredInputStream;
 import org.bouncycastle.bcpg.HashAlgorithmTags;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openpgp.PGPEncryptedData;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPKeyPair;
@@ -24,6 +25,7 @@ import org.bouncycastle.openpgp.jcajce.JcaPGPSecretKeyRingCollection;
 import org.bouncycastle.openpgp.operator.PGPDigestCalculator;
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPContentSignerBuilder;
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPDigestCalculatorProviderBuilder;
+import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyDecryptorBuilder;
 import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyEncryptorBuilder;
 
 import java.io.ByteArrayInputStream;
@@ -33,6 +35,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
+import java.security.Security;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -179,7 +182,7 @@ public class OpenPGP {
 		repository.persistPublicKey(signingKey, encryptionKey, pgpPub.getEncoded(), keyUUID);
 	}
 
-	public void importSecretKey(File inputFile, String password) throws PGPException, IOException {
+	public void importSecretKey(File inputFile, String password) throws PGPException, IOException, RuntimeException {
 		FileInputStream fileInputStream = new FileInputStream(inputFile);
 		ArmoredInputStream armoredInputStream = new ArmoredInputStream(fileInputStream);
 		InputStream in = new ByteArrayInputStream(armoredInputStream.readAllBytes());
@@ -210,6 +213,15 @@ public class OpenPGP {
 		fileInputStream.close();
 		if(signingKey == null || encryptionKey == null) {
 			throw new RuntimeException("Error while importing secret key: couldnt find signing or encryption key");
+		}
+
+		try{
+			Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+			signingKey.extractPrivateKey(
+					new JcePBESecretKeyDecryptorBuilder().setProvider(BouncyCastleProvider.PROVIDER_NAME)
+							.build(password.toCharArray()));
+		} catch (PGPException e) {
+			throw new RuntimeException("Invalid Password!");
 		}
 
 		long keyID = signingKey.getKeyID();
