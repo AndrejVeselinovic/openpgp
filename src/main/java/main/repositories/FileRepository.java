@@ -151,7 +151,9 @@ public class FileRepository implements Repository {
 		KeyType keyInfoType = null;
 		PGPPublicKey encryptionKey;
 
-		try (ArmoredInputStream inputStream = new ArmoredInputStream(new FileInputStream(getPublicKeyFilePath(keyId)))) {
+		try {
+			FileInputStream inputStream1 = new FileInputStream(getPublicKeyFilePath(keyId));
+			ArmoredInputStream inputStream = new ArmoredInputStream(inputStream1);
 			bytes = inputStream.readAllBytes();
 			JcaPGPPublicKeyRing pgpPublicKeys = new JcaPGPPublicKeyRing(bytes);
 			Iterator<PGPPublicKey> iterator = pgpPublicKeys.iterator();
@@ -159,6 +161,7 @@ public class FileRepository implements Repository {
 			if(keyType == 2) {
 				encryptionKey = iterator.next(); //encryption key
 			}
+			inputStream1.close();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -187,7 +190,9 @@ public class FileRepository implements Repository {
 		KeyType keyInfoType = null;
 		PGPSecretKey encryptionKey;
 
-		try (ArmoredInputStream fileInputStream = new ArmoredInputStream(new FileInputStream(getPrivateKeyFilePath(keyId)))) {
+		try {
+			FileInputStream inputStream = new FileInputStream(getPrivateKeyFilePath(keyId));
+			ArmoredInputStream fileInputStream = new ArmoredInputStream(inputStream);
 			bytes = fileInputStream.readAllBytes();
 			JcaPGPSecretKeyRing secretKeys = new JcaPGPSecretKeyRing(bytes);
 			Iterator<PGPSecretKey> iterator = secretKeys.iterator();
@@ -195,6 +200,7 @@ public class FileRepository implements Repository {
 			if(keyType == 2) {
 				encryptionKey = iterator.next(); //encryption key
 			}
+			inputStream.close();
 		} catch (IOException | PGPException e) {
 			throw new RuntimeException(e);
 		}
@@ -252,8 +258,13 @@ public class FileRepository implements Repository {
 
 	@Override
 	public byte[] retrievePublicKey(UUID keyId) {
-		try (ArmoredInputStream inputStream = new ArmoredInputStream(new FileInputStream(getPublicKeyFilePath(keyId)))){
-			return inputStream.readAllBytes();
+		try{
+			FileInputStream inputStream1 = new FileInputStream(getPublicKeyFilePath(keyId));
+			ArmoredInputStream inputStream = new ArmoredInputStream(inputStream1);
+
+			byte[] bytes = inputStream.readAllBytes();
+			inputStream1.close();
+			return bytes;
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
