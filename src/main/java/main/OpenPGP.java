@@ -7,26 +7,33 @@ import main.dtos.DecryptionInfo;
 import main.dtos.UserKeyInfo;
 import main.repositories.FileRepository;
 import main.repositories.Repository;
+import org.bouncycastle.bcpg.ArmoredInputStream;
 import org.bouncycastle.bcpg.HashAlgorithmTags;
 import org.bouncycastle.openpgp.PGPEncryptedData;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPKeyPair;
 import org.bouncycastle.openpgp.PGPKeyRingGenerator;
+import org.bouncycastle.openpgp.PGPPrivateKey;
 import org.bouncycastle.openpgp.PGPPublicKey;
+import org.bouncycastle.openpgp.PGPPublicKeyRing;
 import org.bouncycastle.openpgp.PGPSignature;
-import org.bouncycastle.openpgp.jcajce.JcaPGPPublicKeyRing;
+import org.bouncycastle.openpgp.jcajce.JcaPGPPublicKeyRingCollection;
 import org.bouncycastle.openpgp.operator.PGPDigestCalculator;
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPContentSignerBuilder;
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPDigestCalculatorProviderBuilder;
 import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyEncryptorBuilder;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @AllArgsConstructor
@@ -34,15 +41,20 @@ public class OpenPGP {
 	private final Repository repository;
 
 	private PGPKeyRingGenerator createPGPKeyRingGenerator(PGPKeyPair dsaKeyPair, PGPKeyPair elGamalKeyPair,
-			String email, char[] passphrase) {
+			String email) {
 		try {
 			PGPDigestCalculator sha1Calc = new JcaPGPDigestCalculatorProviderBuilder().build()
 					.get(HashAlgorithmTags.SHA1);
-			PGPKeyRingGenerator keyRingGen = new PGPKeyRingGenerator(PGPSignature.POSITIVE_CERTIFICATION, dsaKeyPair,
-					email, sha1Calc, null, null,
+			PGPKeyRingGenerator keyRingGen = new PGPKeyRingGenerator(
+					PGPSignature.POSITIVE_CERTIFICATION,
+					dsaKeyPair,
+					email,
+					sha1Calc,
+					null,
+					null,
 					new JcaPGPContentSignerBuilder(dsaKeyPair.getPublicKey().getAlgorithm(), HashAlgorithmTags.SHA1),
-					new JcePBESecretKeyEncryptorBuilder(PGPEncryptedData.AES_256, sha1Calc).setProvider("BC")
-							.build(passphrase));
+					null
+			);
 			keyRingGen.addSubKey(elGamalKeyPair);
 			return keyRingGen;
 		} catch (PGPException e) {
@@ -53,12 +65,15 @@ public class OpenPGP {
 	public void generateKeyPair(String username, String email, String password, KeyPairAlgorithm dsaAlgorithm,
 			KeyPairAlgorithm elGamalAlgorithm) {
 		PGPKeyPair dsaKeyPair = dsaAlgorithm.generateKeyPair();
+		PGPPublicKey publicKey = dsaKeyPair.getPublicKey();
+		long keyID = publicKey.getKeyID();
+		PGPPrivateKey privateKey = dsaKeyPair.getPrivateKey();
+		long keyID1 = privateKey.getKeyID();
 		PGPKeyPair elGamalKeyPair = elGamalAlgorithm.generateKeyPair();
-		PGPKeyRingGenerator pgpKeyRingGenerator = createPGPKeyRingGenerator(dsaKeyPair, elGamalKeyPair, email,
-				password.toCharArray());
+		PGPKeyRingGenerator pgpKeyRingGenerator = createPGPKeyRingGenerator(dsaKeyPair, elGamalKeyPair, email);
 		UUID keyId = repository.persistKeyPair(pgpKeyRingGenerator);
 		UserKeyInfo userKeyInfo = new UserKeyInfo(username, password, email, keyId, dsaAlgorithm.getKeyType(),
-				elGamalAlgorithm.getKeyType());
+				elGamalAlgorithm.getKeyType(), true, true, dsaKeyPair.getKeyID());
 		repository.persistUserKeyInfo(userKeyInfo);
 	}
 
@@ -113,27 +128,75 @@ public class OpenPGP {
 		this.repository.exportKeyPair(keyId, newPath);
 	}
 
+	public void importPublicKey(File inputFile) throws PGPException, IOException {
+		FileInputStream fileInputStream = new FileInputStream(inputFile);
+		ArmoredInputStream armoredInputStream = new ArmoredInputStream(fileInputStream);
+		InputStream in = new ByteArrayInputStream(armoredInputStream.readAllBytes());
+		in = org.bouncycastle.openpgp.PGPUtil.getDecoderStream(in);
+
+		JcaPGPPublicKeyRingCollection pgpPub = new JcaPGPPublicKeyRingCollection(in);
+		in.close();
+
+		PGPPublicKey signingKey = null;
+		PGPPublicKey encryptionKey = null;
+		Iterator<PGPPublicKeyRing> rIt = pgpPub.getKeyRings();
+		outerWhile: while (signingKey == null && rIt.hasNext())
+		{
+			PGPPublicKeyRing kRing = rIt.next();
+			Iterator<PGPPublicKey> kIt = kRing.getPublicKeys();
+			while (kIt.hasNext())
+			{
+				PGPPublicKey key = kIt.next();
+
+				if(key.isMasterKey()) {
+					signingKey = key;
+					continue;
+				}
+
+				if (key.isEncryptionKey())
+				{
+					encryptionKey = key;
+					break outerWhile;
+				}
+			}
+		}
+		fileInputStream.close();
+		if(signingKey == null || encryptionKey == null) {
+			throw new RuntimeException("Error while");
+		}
+
+		long keyID = signingKey.getKeyID();
+		UUID keyUUID;
+		Optional<UserKeyInfo> userKeyInfoByLongKeyID = repository.getUserKeyInfoByLongKeyID(keyID);
+		if(userKeyInfoByLongKeyID.isPresent()) {
+			keyUUID = userKeyInfoByLongKeyID.get().getKeyId();
+		} else {
+			keyUUID = UUID.randomUUID();
+		}
+		repository.persistPublicKey(pgpPub.getEncoded(), keyUUID);
+	}
+
 	public static void main(String[] args) throws Exception {
 		OpenPGP openPGP = new OpenPGP(new FileRepository());
 
-//		openPGP.generateKeyPair("andrej", "email@gmail.com", "123", KeyPairAlgorithm.DSA_1024, KeyPairAlgorithm.ElGamal1024);
+		openPGP.generateKeyPair("andrej", "email@gmail.com", "123", KeyPairAlgorithm.DSA_1024, KeyPairAlgorithm.ElGamal4096);
 //		openPGP.generateKeyPair("andrej", "email@gmail.com", "123", KeyPairAlgorithm.DSA_2048, KeyPairAlgorithm.ElGamal2048);
 //		openPGP.getUserKeys().forEach(System.out::println);
 //		openPGP.deleteKeyPair(UUID.fromString("44684ede-3545-4d09-b294-98802a073879"));
 //		openPGP.getUserKeys().forEach(System.out::println);
 
-		String message = "test";
-		UUID keyPairUuid = UUID.fromString("48e95003-e886-4345-934c-d0cbb318411a");
-		UUID keyPairUuid2 = UUID.fromString("7186e147-74ae-4b77-950f-e1050ab46270");
-		String password = "123";
-		byte[] encryptedBytes = openPGP.encrypt(message, List.of(new UUID[] {keyPairUuid, keyPairUuid2}), EncryptionAlgorithm.CAST5, true, keyPairUuid, password, true);
-		System.out.println("Successfully encrypted");
-		flushToFile(encryptedBytes, "message.txt");
-		DecryptionInfo decryptedString = openPGP.decrypt(encryptedBytes, password, keyPairUuid2);
-		System.out.println("Successfully decrypted");
-		System.out.println(decryptedString.getMessage());
-
-		System.out.println(openPGP.repository.getPasswordForKeyId(
-				UUID.fromString("adaaa6fc-d1ea-46da-9a7c-145dd9c48731")));
+//		String message = "test";
+//		UUID keyPairUuid = UUID.fromString("57d58695-449c-4eb6-af53-2d5ef6734ee9");
+//		UUID keyPairUuid2 = UUID.fromString("7186e147-74ae-4b77-950f-e1050ab46270");
+//		String password = "123";
+//		byte[] encryptedBytes = openPGP.encrypt(message, List.of(new UUID[] {keyPairUuid}), EncryptionAlgorithm.CAST5, false, keyPairUuid, password, false);
+//		System.out.println("Successfully encrypted");
+//		flushToFile(encryptedBytes, "message.txt");
+//		DecryptionInfo decryptedString = openPGP.decrypt(encryptedBytes, password, keyPairUuid);
+//		System.out.println("Successfully decrypted");
+//		System.out.println(decryptedString.getMessage());
+//
+//		System.out.println(openPGP.repository.getPasswordForKeyId(
+//				UUID.fromString("adaaa6fc-d1ea-46da-9a7c-145dd9c48731")));
 	}
 }

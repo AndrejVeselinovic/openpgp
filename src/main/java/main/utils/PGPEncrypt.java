@@ -1,16 +1,8 @@
 package main.utils;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.security.SecureRandom;
-import java.util.Collection;
-import java.util.Date;
-
 import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.bcpg.CompressionAlgorithmTags;
 import org.bouncycastle.openpgp.PGPCompressedDataGenerator;
-import org.bouncycastle.openpgp.PGPEncryptedData;
 import org.bouncycastle.openpgp.PGPEncryptedDataGenerator;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPLiteralData;
@@ -18,7 +10,13 @@ import org.bouncycastle.openpgp.PGPLiteralDataGenerator;
 import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.operator.bc.BcPublicKeyKeyEncryptionMethodGenerator;
 import org.bouncycastle.openpgp.operator.jcajce.JcePGPDataEncryptorBuilder;
-import org.bouncycastle.openpgp.operator.jcajce.JcePublicKeyKeyEncryptionMethodGenerator;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.security.SecureRandom;
+import java.util.Collection;
+import java.util.Date;
 
 public class PGPEncrypt {
 	private PGPEncrypt() {
@@ -42,6 +40,7 @@ public class PGPEncrypt {
 
 		return bos.toByteArray();
 	}
+
 
 	private static PGPEncryptedDataGenerator getEncryptedGenerator(Collection<PGPPublicKey> publicKeys, int algorithmTag) {
 		PGPEncryptedDataGenerator encGen = new PGPEncryptedDataGenerator(

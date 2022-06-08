@@ -19,6 +19,7 @@ public class UserKeyInfo {
 	private KeyType encryptionKeyType;
 	private boolean hasSecretKey;
 	private boolean hasPublicKey;
+	private long longKeyId;
 
 	public UserKeyInfo() {
 		this.signatureKeyType = KeyType.UNKNOWN;

@@ -9,18 +9,25 @@ import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPKeyRingGenerator;
 import org.bouncycastle.openpgp.PGPPublicKey;
+import org.bouncycastle.openpgp.PGPPublicKeyRing;
 import org.bouncycastle.openpgp.PGPSecretKey;
 import org.bouncycastle.openpgp.jcajce.JcaPGPPublicKeyRing;
+import org.bouncycastle.openpgp.jcajce.JcaPGPPublicKeyRingCollection;
 import org.bouncycastle.openpgp.jcajce.JcaPGPSecretKeyRing;
+import org.bouncycastle.openpgp.jcajce.JcaPGPSecretKeyRingCollection;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileDescriptor;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -317,6 +324,37 @@ public class FileRepository implements Repository {
 		}
 	}
 
+	private void persistKeyFile(byte[] bytes, String filePath) throws IOException {
+		FileOutputStream fileOutputStream = new FileOutputStream(filePath);
+		ArmoredOutputStream armoredOutputStream = new ArmoredOutputStream(fileOutputStream);
+		armoredOutputStream.write(bytes);
+		fileOutputStream.close();
+	}
+
+	@Override
+	public void persistPublicKey(byte[] publicKeyBytes, UUID keyUUID) throws IOException {
+		String publicKeyFilePath = getPublicKeyFilePath(keyUUID);
+		persistKeyFile(publicKeyBytes, publicKeyFilePath);
+	}
+
+	@Override
+	public void persistSecretKey(byte[] secretKeyBytes, UUID keyUUID) throws IOException {
+		String secretKeyFilePath = getPrivateKeyFilePath(keyUUID);
+		persistKeyFile(secretKeyBytes, secretKeyFilePath);
+	}
+
+	@Override
+	public Optional<UserKeyInfo> getUserKeyInfoByLongKeyID(long keyId) {
+		try (BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE))) {
+			return bufferedReader.lines()
+					.map(this::fromLine)
+					.filter(userInfo -> userInfo.getLongKeyId() == keyId)
+					.findAny();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	private void deleteDirectory(File directoryToBeDeleted) {
 		File[] allContents = directoryToBeDeleted.listFiles();
 		if (allContents != null) {
@@ -362,10 +400,10 @@ public class FileRepository implements Repository {
 
 	private UserKeyInfo fromLine(String line) {
 		String[] args = line.split(",");
-		if (args.length != 6) {
+		if (args.length != 7) {
 			throw new RuntimeException("Error parsing user from file, line: " + line);
 		}
 
-		return new UserKeyInfo(args[0], args[1], args[2], UUID.fromString(args[3]), KeyType.valueOf(args[4]), KeyType.valueOf(args[5]), false, false);
+		return new UserKeyInfo(args[0], args[1], args[2], UUID.fromString(args[3]), KeyType.valueOf(args[4]), KeyType.valueOf(args[5]), false, false, Long.parseLong(args[6]));
 	}
 }
