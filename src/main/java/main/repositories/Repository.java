@@ -37,4 +37,8 @@ public interface Repository {
 	UserKeyInfo getUserKeyInfo(UUID keyId);
 
 	void exportKeyPair(UUID keyId, String newPath) throws IOException;
+
+	boolean hasLoadedPrivateKey(UUID keyId);
+
+	boolean hasLoadedPublicKey(UUID keyId);
 }

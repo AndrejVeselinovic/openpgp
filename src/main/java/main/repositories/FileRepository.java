@@ -370,4 +370,26 @@ public class FileRepository implements Repository {
 		return new UserKeyInfo(args[0], args[1], args[2], UUID.fromString(args[3]), KeyType.valueOf(args[4]),
 				KeyType.valueOf(args[5]), Boolean.parseBoolean(args[6]), Boolean.parseBoolean(args[7]));
 	}
+
+	@Override
+	public boolean hasLoadedPrivateKey(UUID keyId) {
+		try (BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE))) {
+			return bufferedReader.lines().
+					map(this::fromLine).
+					anyMatch(userKeyInfo -> userKeyInfo.getKeyId().equals(keyId) && userKeyInfo.isHasSecretKey());
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@Override
+	public boolean hasLoadedPublicKey(UUID keyId) {
+		try (BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE))) {
+			return bufferedReader.lines().
+					map(this::fromLine).
+					anyMatch(userKeyInfo -> userKeyInfo.getKeyId().equals(keyId) && userKeyInfo.isHasPublicKey());
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
 }
