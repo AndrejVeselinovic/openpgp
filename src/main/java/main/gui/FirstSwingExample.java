@@ -32,7 +32,8 @@ public class FirstSwingExample {
 
 	private static final String PATH_TO_KEYS_DIR = "D:/Nedim/ZP/openpgp/keys";
 
-	private static final String[] columnNames = new String[]{"Name", "Email", "Signing Key Type", "Encryption Key Type", "ID", "Password"};
+	private static final String[] columnNames = new String[]{"Name", "Email", "Signing Key Type",
+			"Encryption Key Type", "Has public key", "Has private key", "ID", "Password"};
 	private static final int IdColumnIndex = columnNames.length - 2;
 	private static String[][] data;
 	private static final AtomicReference<Collection<UUID>> publicKeysForEncryption = new AtomicReference<>();
@@ -54,10 +55,13 @@ public class FirstSwingExample {
 			data[i][1] = currentUserKey.getEmail();
 			data[i][2] = currentUserKey.getSignatureKeyType().name();
 			data[i][3] = currentUserKey.getEncryptionKeyType().name();
-			data[i][4] = currentUserKey.getKeyId().toString();
-			data[i][5] = currentUserKey.getPassword();
+			data[i][4] = String.valueOf(currentUserKey.isHasPublicKey());
+			data[i][5] = String.valueOf(currentUserKey.isHasSecretKey());
+			data[i][6] = currentUserKey.getKeyId().toString();
+			data[i][7] = currentUserKey.getPassword();
 		}
 	}
+
 	public static void main(String[] args) {
 		frame = getMainFrame();
 
@@ -164,8 +168,8 @@ public class FirstSwingExample {
 				return;
 			}
 
-			String keyId = (String) table.getModel().getValueAt(selectedRow, 4);
-			String password = (String) table.getModel().getValueAt(selectedRow, 5);
+			String keyId = (String) table.getModel().getValueAt(selectedRow, 6);
+			String password = (String) table.getModel().getValueAt(selectedRow, 7);
 
 			if (!password.equals(passwordTextField.getText())){
 				showMessageDialog(null, "Wrong password!");
@@ -274,6 +278,7 @@ public class FirstSwingExample {
 						passwordPKTextField.getText(), (KeyPairAlgorithm) signingAlgorithms.getSelectedItem(),
 						(KeyPairAlgorithm) encryptionAlgorithms.getSelectedItem());
 				refreshMainPanel();
+				dialog.dispose();
 			}
 		});
 		return generateButton;
