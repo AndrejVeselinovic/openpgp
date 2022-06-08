@@ -2,7 +2,6 @@ package main.dtos;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 import java.util.UUID;
@@ -18,6 +17,8 @@ public class UserKeyInfo {
 	private UUID keyId;
 	private KeyType signatureKeyType;
 	private KeyType encryptionKeyType;
+	private boolean hasSecretKey;
+	private boolean hasPublicKey;
 
 	public UserKeyInfo() {
 		this.signatureKeyType = KeyType.UNKNOWN;

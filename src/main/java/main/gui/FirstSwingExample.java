@@ -188,8 +188,10 @@ public class FirstSwingExample {
 
 	private static JButton getGenerateKeyPairButton() {
 		JButton generateKeyPairButton = new JButton("Generate New Key Pair");
-		JDialog dialog = getGenerateKeyPairDialog();
-		generateKeyPairButton.addActionListener(event -> dialog.setVisible(true));
+		generateKeyPairButton.addActionListener(event -> {
+			JDialog dialog = getGenerateKeyPairDialog();
+			dialog.setVisible(true);
+		});
 		return generateKeyPairButton;
 	}
 
@@ -531,6 +533,7 @@ public class FirstSwingExample {
 			if(selectedRow == -1) {
 				return;
 			}
+
 			String uuidString = data[selectedRow][IdColumnIndex];
 			UUID privateKeyId = UUID.fromString(uuidString);
 
