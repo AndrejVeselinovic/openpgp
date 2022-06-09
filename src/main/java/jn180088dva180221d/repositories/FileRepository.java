@@ -99,19 +99,6 @@ public class FileRepository implements Repository {
 	}
 
 	@Override
-	public boolean checkPassword(String username, String password) {
-		try (BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE))) {
-			return bufferedReader.lines()
-					.filter(line -> !line.equals(""))
-					.map(this::fromLine)
-					.anyMatch(userInfo -> userInfo.getUsername().equals(username) && userInfo.getPassword()
-							.equals(password));
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	@Override
 	public void deleteKeyPair(UUID keyId) throws IOException {
 		Path privateKeyPath = Path.of(getPrivateKeyFilePath(keyId));
 		if(Files.exists(privateKeyPath)){
@@ -123,38 +110,6 @@ public class FileRepository implements Repository {
 			Files.delete(publicKeyPath);
 		}
 		deleteKeyRecord(keyId);
-	}
-
-	@Override
-	public void persistSessionKey(UUID sessionId, int keyIndex, byte[] key) {
-		String dirPath = String.format("%s%s/", SESSIONS_DIRECTORY, sessionId);
-		File dir = new File(dirPath);
-		dir.mkdirs();
-
-		File file = new File(dirPath + keyIndex);
-
-		try (FileOutputStream fileOutputStream = new FileOutputStream(file)) {
-			fileOutputStream.write(key);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	@Override
-	public byte[] retrieveSessionKey(UUID sessionId, int keyIndex) {
-		String path = String.format("%s%s/%s", SESSIONS_DIRECTORY, sessionId, keyIndex);
-		File file = new File(path);
-
-		try (FileInputStream fileInputStream = new FileInputStream(file)) {
-			return fileInputStream.readAllBytes();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	@Override
-	public void deleteSessionKey(UUID sessionId) {
-		deleteDirectory(new File(SESSIONS_DIRECTORY + sessionId));
 	}
 
 	private PublicKeyInfo getPublicKey(UUID keyId, int keyType) {
@@ -259,20 +214,6 @@ public class FileRepository implements Repository {
 	@Override
 	public SecretKeyInfo getSecretSigningKey(UUID keyId) throws PGPException, IOException {
 		return getPrivateKey(keyId, 1);
-	}
-
-	@Override
-	public byte[] retrievePublicKey(UUID keyId) {
-		try{
-			FileInputStream inputStream1 = new FileInputStream(getPublicKeyFilePath(keyId));
-			ArmoredInputStream inputStream = new ArmoredInputStream(inputStream1);
-
-			byte[] bytes = inputStream.readAllBytes();
-			inputStream1.close();
-			return bytes;
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
 	}
 
 	@Override
@@ -505,25 +446,4 @@ public class FileRepository implements Repository {
 				Long.parseLong(args[8]));
 	}
 
-	@Override
-	public boolean hasLoadedPrivateKey(UUID keyId) {
-		try (BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE))) {
-			return bufferedReader.lines().
-					map(this::fromLine).
-					anyMatch(userKeyInfo -> userKeyInfo.getKeyId().equals(keyId) && userKeyInfo.isHasSecretKey());
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	@Override
-	public boolean hasLoadedPublicKey(UUID keyId) {
-		try (BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE))) {
-			return bufferedReader.lines().
-					map(this::fromLine).
-					anyMatch(userKeyInfo -> userKeyInfo.getKeyId().equals(keyId) && userKeyInfo.isHasPublicKey());
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
 }
