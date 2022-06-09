@@ -71,6 +71,7 @@ public class FileRepository implements Repository {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+
 		return keyId;
 	}
 
@@ -109,8 +110,15 @@ public class FileRepository implements Repository {
 
 	@Override
 	public void deleteKeyPair(UUID keyId) throws IOException {
-		Files.delete(Path.of(getPrivateKeyFilePath(keyId)));
-		Files.delete(Path.of(getPublicKeyFilePath(keyId)));
+		Path privateKeyPath = Path.of(getPrivateKeyFilePath(keyId));
+		if(Files.exists(privateKeyPath)){
+			Files.delete(privateKeyPath);
+		}
+
+		Path publicKeyPath = Path.of(getPublicKeyFilePath(keyId));
+		if(Files.exists(publicKeyPath)){
+			Files.delete(publicKeyPath);
+		}
 		deleteKeyRecord(keyId);
 	}
 
