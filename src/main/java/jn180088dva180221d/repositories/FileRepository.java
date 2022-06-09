@@ -416,10 +416,7 @@ public class FileRepository implements Repository {
 			BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(USERS_FILE));
 			for (int i = 0; i < lines.size(); i++) {
 				String line = lines.get(i);
-				bufferedWriter.write(line);
-				if(i < lines.size() - 1) {
-					bufferedWriter.write("\n");
-				}
+				bufferedWriter.write(line + "\n");
 			}
 
 			bufferedWriter.close();
@@ -430,7 +427,7 @@ public class FileRepository implements Repository {
 
 	private UserKeyInfo fromLine(String line) {
 		String[] args = line.split(",");
-		if (args.length != 9) {
+		if (args.length < 9) {
 			throw new RuntimeException("Error parsing user from file, line: " + line);
 		}
 
