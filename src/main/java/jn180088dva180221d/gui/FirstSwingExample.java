@@ -35,11 +35,12 @@ public class FirstSwingExample {
 
 	private static final String[] columnNames = new String[]{"Name", "Email", "Signing Key Type",
 			"Encryption Key Type", "Has public key", "Has private key", "ID", "Password"};
-	private static final int IdColumnIndex = columnNames.length - 2;
+	private static final int KEY_ID_COLUMN_INDEX = columnNames.length - 2;
 	private static String[][] data;
 	private static final AtomicReference<Collection<UUID>> publicKeysForEncryption = new AtomicReference<>();
 	private static final AtomicReference<UUID> privateKey = new AtomicReference<>();
 	private static final AtomicReference<String> privateKeyPassword = new AtomicReference<>();
+	private static final AtomicReference<UUID> keyToExport = new AtomicReference<>();
 	private static JFrame frame;
 	private static JScrollPane usersPanel;
 
@@ -119,7 +120,7 @@ public class FirstSwingExample {
 		dialog.add(panel);
 
 		JButton chooseKeyPairButton = new JButton("Choose Key Pair");
-		chooseKeyPairButton.addActionListener(event -> new Thread(FirstSwingExample::getUsersTableForEncryption).start());
+		chooseKeyPairButton.addActionListener(event -> new Thread(FirstSwingExample::getChooseKeyToExportInput).start());
 		panel.add(chooseKeyPairButton);
 
 		JPanel exportInputPanel = new JPanel();
@@ -132,7 +133,7 @@ public class FirstSwingExample {
 		JButton exportButton = new JButton("Export");
 		exportButton.addActionListener(event -> {
 			try{
-				OPENPGP_CLIENT.exportKeyPair(publicKeysForEncryption.get().stream().findFirst().get(), textField.getText());
+				OPENPGP_CLIENT.exportKeyPair(keyToExport.get(), textField.getText());
 				showMessageDialog(dialog, "Success");
 			} catch (Exception e) {
 				showMessageDialog(dialog, e.getMessage());
@@ -642,7 +643,7 @@ public class FirstSwingExample {
 				return;
 			}
 
-			String uuidString = data[selectedRow][IdColumnIndex];
+			String uuidString = data[selectedRow][KEY_ID_COLUMN_INDEX];
 			UUID privateKeyId = UUID.fromString(uuidString);
 
 			String realPassword = OPENPGP_CLIENT.getPasswordForKeyId(privateKeyId);
@@ -659,6 +660,31 @@ public class FirstSwingExample {
 
 		panel.add(bottomPanel);
 		dialog.setSize((int) (WINDOW_WIDTH * 0.8), WINDOW_HEIGHT);
+		dialog.setLocation((int) (LOCATION_X * 1.4), (int) (LOCATION_Y * 1.2));
+		dialog.setVisible(true);
+	}
+
+	private static void getChooseKeyToExportInput() {
+		JDialog dialog = new JDialog();
+
+		List<UserKeyInfo> users = OPENPGP_CLIENT.getUserKeys();
+		String[][] localData = getDataFromUsers(users);
+		JTable table = getUsersTable(localData);
+		dialog.add(table, BorderLayout.CENTER);
+
+		JButton submitButton = new JButton("Choose");
+		submitButton.addActionListener(event->{
+			int selectedRow = table.getSelectedRow();
+			if(selectedRow == -1){
+				return;
+			}
+			String keyIdString = localData[selectedRow][KEY_ID_COLUMN_INDEX];
+			keyToExport.set(UUID.fromString(keyIdString));
+			dialog.dispose();
+		});
+		dialog.add(submitButton, BorderLayout.SOUTH);
+
+		dialog.setSize((int) (WINDOW_WIDTH * 0.8), (int) (WINDOW_HEIGHT * 0.8));
 		dialog.setLocation((int) (LOCATION_X * 1.4), (int) (LOCATION_Y * 1.2));
 		dialog.setVisible(true);
 	}

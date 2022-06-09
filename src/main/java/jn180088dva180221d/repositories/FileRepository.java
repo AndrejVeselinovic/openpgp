@@ -17,6 +17,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -57,17 +58,19 @@ public class FileRepository implements Repository {
 	public UUID persistKeyPair(PGPKeyRingGenerator keyRingGenerator) {
 		UUID keyId = UUID.randomUUID();
 		try {
-			FileOutputStream outputStream = new FileOutputStream(getPrivateKeyFilePath(keyId));
-			ArmoredOutputStream privateOutput = new ArmoredOutputStream(outputStream);
+			FileOutputStream privateKeyFileOutputStream = new FileOutputStream(getPrivateKeyFilePath(keyId));
+			ArmoredOutputStream privateKeyArmoredOutputStream = new ArmoredOutputStream(privateKeyFileOutputStream);
 
-			FileOutputStream outputStream1 = new FileOutputStream(getPublicKeyFilePath(keyId));
-			ArmoredOutputStream publicOutput = new ArmoredOutputStream(outputStream1);
+			FileOutputStream publicKeyFileOutputStream = new FileOutputStream(getPublicKeyFilePath(keyId));
+			ArmoredOutputStream publicKeyArmoredOutputStream = new ArmoredOutputStream(publicKeyFileOutputStream);
 
-			keyRingGenerator.generatePublicKeyRing().encode(publicOutput);
-			keyRingGenerator.generateSecretKeyRing().encode(privateOutput);
+			keyRingGenerator.generatePublicKeyRing().encode(publicKeyArmoredOutputStream);
+			keyRingGenerator.generateSecretKeyRing().encode(privateKeyArmoredOutputStream);
 
-			outputStream.close();
-			outputStream1.close();
+			privateKeyArmoredOutputStream.close();
+			publicKeyArmoredOutputStream.close();
+			privateKeyFileOutputStream.close();
+			publicKeyFileOutputStream.close();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -168,7 +171,7 @@ public class FileRepository implements Repository {
 			if(keyType == 2) {
 				encryptionKey = iterator.next(); //encryption key
 			}
-			inputStream1.close();
+			inputStream.close();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -192,23 +195,18 @@ public class FileRepository implements Repository {
 		return new PublicKeyInfo(encryptionKey, SymmetricAlgorithmTagsConverter.of(encryptionKey.getAlgorithm()));
 	}
 
-	private SecretKeyInfo getPrivateKey(UUID keyId, int keyType) {
+	private SecretKeyInfo getPrivateKey(UUID keyId, int keyType) throws IOException, PGPException {
 		byte[] bytes;
 		PGPSecretKey encryptionKey;
 
-		try {
-			FileInputStream inputStream = new FileInputStream(getPrivateKeyFilePath(keyId));
-			ArmoredInputStream fileInputStream = new ArmoredInputStream(inputStream);
-			bytes = fileInputStream.readAllBytes();
-			JcaPGPSecretKeyRing secretKeys = new JcaPGPSecretKeyRing(bytes);
-			Iterator<PGPSecretKey> iterator = secretKeys.iterator();
-			encryptionKey = iterator.next(); //signing key
-			if(keyType == 2) {
-				encryptionKey = iterator.next(); //encryption key
-			}
-			inputStream.close();
-		} catch (IOException | PGPException e) {
-			throw new RuntimeException(e);
+		FileInputStream inputStream = new FileInputStream(getPrivateKeyFilePath(keyId));
+		ArmoredInputStream fileInputStream = new ArmoredInputStream(inputStream);
+		bytes = fileInputStream.readAllBytes();
+		JcaPGPSecretKeyRing secretKeys = new JcaPGPSecretKeyRing(bytes);
+		Iterator<PGPSecretKey> iterator = secretKeys.iterator();
+		encryptionKey = iterator.next(); //signing key
+		if(keyType == 2) {
+			encryptionKey = iterator.next(); //encryption key
 		}
 
 //		try (BufferedReader bufferedReader = new BufferedReader(new FileReader(USERS_FILE))) {
@@ -227,6 +225,7 @@ public class FileRepository implements Repository {
 //		if (keyInfoType == null) {
 //			throw new RuntimeException("couldnt find private key with key id: " + keyId);
 //		}
+		inputStream.close();
 		return new SecretKeyInfo(encryptionKey, SymmetricAlgorithmTagsConverter.of(encryptionKey.getPublicKey().getAlgorithm()));
 	}
 
@@ -253,12 +252,12 @@ public class FileRepository implements Repository {
 	}
 
 	@Override
-	public SecretKeyInfo getSecretEncryptionKey(UUID keyId) {
+	public SecretKeyInfo getSecretEncryptionKey(UUID keyId) throws PGPException, IOException {
 		return getPrivateKey(keyId, 2);
 	}
 
 	@Override
-	public SecretKeyInfo getSecretSigningKey(UUID keyId) {
+	public SecretKeyInfo getSecretSigningKey(UUID keyId) throws PGPException, IOException {
 		return getPrivateKey(keyId, 1);
 	}
 
@@ -297,26 +296,28 @@ public class FileRepository implements Repository {
 
 	@Override
 	public void exportKeyPair(UUID keyId, String newPath) throws IOException {
+		FileOutputStream fileOutputStream = new FileOutputStream(newPath);
+
 		String publicKeyFilePath = this.getPublicKeyFilePath(keyId);
 		File publicKeyFile = new File(publicKeyFilePath);
-		File newPublicKeyFile = new File(newPath + PUBLIC_KEY_EXTENSION + KEY_EXTENSION);
-		try(FileOutputStream outputStream = new FileOutputStream(newPublicKeyFile)){
-			outputStream.write(Files.readAllBytes(publicKeyFile.toPath()));
+		if(Files.exists(Path.of(publicKeyFilePath))) {
+			fileOutputStream.write(Files.readAllBytes(publicKeyFile.toPath()));
 		}
 
-		String privateKeyFilePath = this.getPrivateKeyFilePath(keyId);
-		File privateKeyFile = new File(privateKeyFilePath);
-		File newPrivateKeyFile = new File(newPath + PRIVATE_KEY_EXTENSION + KEY_EXTENSION);
-		try(FileOutputStream outputStream = new FileOutputStream(newPrivateKeyFile)){
-			outputStream.write(Files.readAllBytes(privateKeyFile.toPath()));
+		String secretKeyFilePath = this.getPrivateKeyFilePath(keyId);
+		File secretKeyFile = new File(secretKeyFilePath);
+		if(Files.exists(Path.of(secretKeyFilePath))) {
+			fileOutputStream.write(Files.readAllBytes(secretKeyFile.toPath()));
 		}
+
+		fileOutputStream.close();
 	}
 
 	private void persistKeyFile(byte[] bytes, String filePath) throws IOException {
 		FileOutputStream fileOutputStream = new FileOutputStream(filePath);
 		ArmoredOutputStream armoredOutputStream = new ArmoredOutputStream(fileOutputStream);
 		armoredOutputStream.write(bytes);
-		fileOutputStream.close();
+		armoredOutputStream.close();
 	}
 
 	/**

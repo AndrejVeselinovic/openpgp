@@ -3,6 +3,7 @@ package jn180088dva180221d.repositories;
 import jn180088dva180221d.dtos.PublicKeyInfo;
 import jn180088dva180221d.dtos.SecretKeyInfo;
 import jn180088dva180221d.dtos.UserKeyInfo;
+import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPKeyRingGenerator;
 import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.PGPSecretKey;
@@ -25,9 +26,9 @@ public interface Repository {
 
 	void deleteSessionKey(UUID sessionId);
 
-	SecretKeyInfo getSecretEncryptionKey(UUID keyId);
+	SecretKeyInfo getSecretEncryptionKey(UUID keyId) throws PGPException, IOException;
 
-	SecretKeyInfo getSecretSigningKey(UUID keyId);
+	SecretKeyInfo getSecretSigningKey(UUID keyId) throws PGPException, IOException;
 
 	PublicKeyInfo getPublicEncryptionKey(UUID keyId);
 

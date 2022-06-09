@@ -237,7 +237,7 @@ public class OpenPGP {
 		OpenPGP openPGP = new OpenPGP(new FileRepository());
 
 //		openPGP.generateKeyPair("andrej", "email@gmail.com", "123", KeyPairAlgorithm.DSA_1024, KeyPairAlgorithm.ElGamal4096);
-//		openPGP.generateKeyPair("andrej", "email@gmail.com", "123", KeyPairAlgorithm.DSA_2048, KeyPairAlgorithm.ElGamal2048);
+		openPGP.generateKeyPair("andrej", "email@gmail.com", "123", KeyPairAlgorithm.DSA_2048, KeyPairAlgorithm.ElGamal2048);
 //		openPGP.getUserKeys().forEach(System.out::println);
 //		openPGP.deleteKeyPair(UUID.fromString("44684ede-3545-4d09-b294-98802a073879"));
 //		openPGP.getUserKeys().forEach(System.out::println);
@@ -255,7 +255,7 @@ public class OpenPGP {
 //
 //		System.out.println(openPGP.repository.getPasswordForKeyId(
 //				UUID.fromString("adaaa6fc-d1ea-46da-9a7c-145dd9c48731")));
-		openPGP.importPublicKey(new File("test.priv.asc"));
+//		openPGP.importSecretKey(new File("test.priv.asc"), "123");
 //		openPGP.importSecretKey(new File("test.priv.asc"), "123");
 	}
 }
