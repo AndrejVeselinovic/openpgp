@@ -16,14 +16,8 @@ public interface Repository {
 	UUID persistKeyPair(PGPKeyRingGenerator keyRingGenerator);
 	void persistUserKeyInfo(UserKeyInfo userKeyInfo);
 	List<UserKeyInfo> getUsers();
-	boolean checkPassword(String username, String password);
+
 	void deleteKeyPair(UUID keyId) throws IOException;
-
-	void persistSessionKey(UUID sessionId, int keyIndex, byte[] key);
-
-	byte[] retrieveSessionKey(UUID sessionId, int keyIndex);
-
-	void deleteSessionKey(UUID sessionId);
 
 	SecretKeyInfo getSecretEncryptionKey(UUID keyId);
 
@@ -35,8 +29,6 @@ public interface Repository {
 
 	String getPasswordForKeyId(UUID keyId);
 
-	byte[] retrievePublicKey(UUID keyId);
-
 	UserKeyInfo getUserKeyInfo(UUID keyId);
 
 	void exportKeyPair(UUID keyId, String newPath) throws IOException;
@@ -47,7 +39,4 @@ public interface Repository {
 
 	Optional<UserKeyInfo> getUserKeyInfoByLongKeyID(long keyId);
 
-	boolean hasLoadedPrivateKey(UUID keyId);
-
-	boolean hasLoadedPublicKey(UUID keyId);
 }
