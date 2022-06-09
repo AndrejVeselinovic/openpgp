@@ -21,7 +21,7 @@ public interface Repository {
 	void persistUserKeyInfo(UserKeyInfo userKeyInfo);
 	List<UserKeyInfo> getUsers();
 	boolean checkPassword(String username, String password);
-	void deleteKeyPair(UUID keyId);
+	void deleteKeyPair(UUID keyId) throws IOException;
 
 	void persistSessionKey(UUID sessionId, int keyIndex, byte[] key);
 

@@ -236,7 +236,7 @@ public class FirstSwingExample {
 		JButton submitDeleteButton = new JButton("Submit");
 		buttonPanel.add(submitDeleteButton);
 
-		submitDeleteButton.addActionListener(e -> {
+		submitDeleteButton.addActionListener(event-> {
 			JViewport viewport = usersPanel.getViewport();
 			JTable table = (JTable)viewport.getView();
 
@@ -253,8 +253,13 @@ public class FirstSwingExample {
 				showMessageDialog(null, "Wrong password!");
 				return;
 			}
-
-			OPENPGP_CLIENT.deleteKeyPair(UUID.fromString(keyId));
+			try {
+				OPENPGP_CLIENT.deleteKeyPair(UUID.fromString(keyId));
+				showMessageDialog(dialog, "Success");
+			} catch (Exception e) {
+				showMessageDialog(dialog, e.getMessage());
+				throw new RuntimeException(e);
+			}
 
 			refreshMainPanel();
 		});

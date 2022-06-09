@@ -91,7 +91,7 @@ public class OpenPGP {
 		return repository.getUsers();
 	}
 
-	public void deleteKeyPair(UUID keyId) {
+	public void deleteKeyPair(UUID keyId) throws IOException {
 		repository.deleteKeyPair(keyId);
 	}
 
