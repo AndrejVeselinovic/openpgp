@@ -1,16 +1,16 @@
-package main.algorithms.symmetric;
+package jn180088dva180221d.algorithms.symmetric;
 
 import lombok.AllArgsConstructor;
-import main.dtos.DecryptionInfo;
-import main.dtos.PublicKeyInfo;
-import main.dtos.SecretKeyInfo;
-import main.dtos.UserKeyInfo;
-import main.repositories.FileRepository;
-import main.repositories.Repository;
-import main.utils.PGPDecrypt;
-import main.utils.PGPEncrypt;
-import main.utils.PGPSign;
-import main.utils.PGPVerify;
+import jn180088dva180221d.dtos.DecryptionInfo;
+import jn180088dva180221d.dtos.PublicKeyInfo;
+import jn180088dva180221d.dtos.SecretKeyInfo;
+import jn180088dva180221d.dtos.UserKeyInfo;
+import jn180088dva180221d.repositories.FileRepository;
+import jn180088dva180221d.repositories.Repository;
+import jn180088dva180221d.utils.PGPDecrypt;
+import jn180088dva180221d.utils.PGPEncrypt;
+import jn180088dva180221d.utils.PGPSign;
+import jn180088dva180221d.utils.PGPVerify;
 import org.apache.commons.codec.binary.Base64;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openpgp.PGPException;

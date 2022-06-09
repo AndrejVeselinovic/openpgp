@@ -1,6 +1,6 @@
-package main.algorithms.asymmetric;
+package jn180088dva180221d.algorithms.asymmetric;
 
-import main.dtos.SymmetricAlgorithmTagsConverter;
+import jn180088dva180221d.dtos.SymmetricAlgorithmTagsConverter;
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.crypto.CryptoServicesRegistrar;
 import org.bouncycastle.crypto.generators.ElGamalKeyPairGenerator;

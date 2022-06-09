@@ -1,7 +1,7 @@
-package main.algorithms.asymmetric;
+package jn180088dva180221d.algorithms.asymmetric;
 
 import lombok.AllArgsConstructor;
-import main.dtos.SymmetricAlgorithmTagsConverter;
+import jn180088dva180221d.dtos.SymmetricAlgorithmTagsConverter;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPKeyPair;
 import org.bouncycastle.openpgp.PGPPublicKey;

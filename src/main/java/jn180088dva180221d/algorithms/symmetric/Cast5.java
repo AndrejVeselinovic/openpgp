@@ -1,4 +1,4 @@
-package main.algorithms.symmetric;
+package jn180088dva180221d.algorithms.symmetric;
 
 import org.bouncycastle.bcpg.SymmetricKeyAlgorithmTags;
 

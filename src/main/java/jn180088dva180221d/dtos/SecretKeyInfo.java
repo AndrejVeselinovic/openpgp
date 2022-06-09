@@ -1,4 +1,4 @@
-package main.dtos;
+package jn180088dva180221d.dtos;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

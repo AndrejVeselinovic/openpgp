@@ -1,4 +1,4 @@
-package main.algorithms.asymmetric;
+package jn180088dva180221d.algorithms.asymmetric;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

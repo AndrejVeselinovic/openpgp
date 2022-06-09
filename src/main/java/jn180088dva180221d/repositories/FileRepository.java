@@ -1,9 +1,9 @@
-package main.repositories;
+package jn180088dva180221d.repositories;
 
-import main.dtos.PublicKeyInfo;
-import main.dtos.SecretKeyInfo;
-import main.dtos.SymmetricAlgorithmTagsConverter;
-import main.dtos.UserKeyInfo;
+import jn180088dva180221d.dtos.PublicKeyInfo;
+import jn180088dva180221d.dtos.SecretKeyInfo;
+import jn180088dva180221d.dtos.SymmetricAlgorithmTagsConverter;
+import jn180088dva180221d.dtos.UserKeyInfo;
 import org.bouncycastle.bcpg.ArmoredInputStream;
 import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.openpgp.PGPException;

@@ -1,9 +1,8 @@
-package main.dtos;
+package jn180088dva180221d.dtos;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.ToString;
 
 import java.util.UUID;
 

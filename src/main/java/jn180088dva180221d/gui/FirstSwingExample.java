@@ -1,11 +1,11 @@
-package main.gui;
+package jn180088dva180221d.gui;
 
-import main.OpenPGP;
-import main.algorithms.asymmetric.KeyPairAlgorithm;
-import main.algorithms.symmetric.EncryptionAlgorithm;
-import main.dtos.DecryptionInfo;
-import main.dtos.UserKeyInfo;
-import main.repositories.FileRepository;
+import jn180088dva180221d.OpenPGP;
+import jn180088dva180221d.algorithms.asymmetric.KeyPairAlgorithm;
+import jn180088dva180221d.algorithms.symmetric.EncryptionAlgorithm;
+import jn180088dva180221d.dtos.DecryptionInfo;
+import jn180088dva180221d.dtos.UserKeyInfo;
+import jn180088dva180221d.repositories.FileRepository;
 import org.bouncycastle.openpgp.PGPException;
 
 import javax.swing.*;

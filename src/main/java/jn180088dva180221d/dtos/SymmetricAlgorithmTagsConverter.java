@@ -1,4 +1,4 @@
-package main.dtos;
+package jn180088dva180221d.dtos;
 
 public class SymmetricAlgorithmTagsConverter {
 
